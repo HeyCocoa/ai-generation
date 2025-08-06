@@ -1,39 +1,83 @@
-# ai-frontend
+# AI码生成平台
 
-This template should help get you started developing with Vue 3 in Vite.
+这是一个基于 Vue 3 + TypeScript + Ant Design Vue 的前端项目，提供 AI 代码生成功能。
 
-## Recommended IDE Setup
+## 项目结构
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+```
+src/
+├── components/          # 公共组件
+│   ├── GlobalHeader.vue # 全局头部组件
+│   └── GlobalFooter.vue # 全局底部组件
+├── layouts/             # 布局组件
+│   └── BasicLayout.vue  # 基础布局组件
+├── views/               # 页面组件
+│   ├── Home.vue         # 首页
+│   ├── Generator.vue    # 代码生成页面
+│   ├── Templates.vue    # 模板库页面
+│   ├── Docs.vue         # 文档页面
+│   └── About.vue        # 关于页面
+├── router/              # 路由配置
+├── stores/              # 状态管理
+└── App.vue              # 根组件
+```
 
-## Type Support for `.vue` Imports in TS
+## 功能特性
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+- 🎨 响应式设计，支持移动端
+- 🧩 模块化组件架构
+- 🎯 基于 Ant Design Vue 的现代化 UI
+- 🚀 Vue 3 + TypeScript 开发
+- 📱 移动端适配
 
-## Customize configuration
+## 开发说明
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+### Logo 配置
 
-## Project Setup
+项目使用 `/public/logo.png` 作为网站 logo，请将您的 logo 文件放在 `public` 目录下，建议尺寸为 32x32 像素或更大。
 
-```sh
+### 菜单配置
+
+菜单项在 `src/components/GlobalHeader.vue` 中的 `menuItems` 数组中配置，支持以下属性：
+- `key`: 路由名称
+- `label`: 显示文本
+- `icon`: 图标（支持 emoji 或 Ant Design 图标）
+
+### 布局结构
+
+项目采用上中下布局：
+- **顶部**: 导航栏（GlobalHeader）
+- **中间**: 内容区域（router-view）
+- **底部**: 版权信息（GlobalFooter）
+
+## 开发命令
+
+```bash
+# 安装依赖
 npm install
-```
 
-### Compile and Hot-Reload for Development
-
-```sh
+# 启动开发服务器
 npm run dev
-```
 
-### Type-Check, Compile and Minify for Production
-
-```sh
+# 构建生产版本
 npm run build
-```
 
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
+# 代码检查
 npm run lint
+
+# 类型检查
+npm run type-check
 ```
+
+## 技术栈
+
+- Vue 3
+- TypeScript
+- Ant Design Vue
+- Vue Router
+- Pinia
+- Vite
+
+## 作者
+
+程序员kokoaaa
