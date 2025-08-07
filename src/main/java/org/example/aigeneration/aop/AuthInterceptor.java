@@ -1,0 +1,52 @@
+package org.example.aigeneration.aop;
+
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.example.aigeneration.annotation.AuthCheck;
+import org.example.aigeneration.exception.BusinessException;
+import org.example.aigeneration.exception.ErrorCode;
+import org.example.aigeneration.model.entity.User;
+import org.example.aigeneration.model.enums.UserRoleEnum;
+import org.example.aigeneration.service.UserService;
+import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import static org.example.aigeneration.constant.UserConstant.ADMIN_ROLE;
+import static org.example.aigeneration.constant.UserConstant.USER_LOGIN_STATE;
+
+@Aspect
+@Component
+public class AuthInterceptor{
+
+    @Resource
+    private UserService userService;
+
+    @Around("@annotation(authCheck)")
+    public Object Interceptor(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable{
+        //获取必要权限
+        String mustRole = authCheck.mustRole();
+        //若不需要权限则直接放行
+        if( mustRole==null ) return joinPoint.proceed();
+        //获取当前用户
+        RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
+        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+        User user = userService.getLoginUser(request);
+        //若用户没有权限，拒绝放行
+        if( user.getUserRole()==null ){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        //当要求有管理员权限，但是用户没有管理员权限时，拒绝放行
+        else if( mustRole.equals(ADMIN_ROLE) && !user.getUserRole().equals(ADMIN_ROLE) ){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        //放行
+        else {
+            return joinPoint.proceed();
+        }
+    }
+}

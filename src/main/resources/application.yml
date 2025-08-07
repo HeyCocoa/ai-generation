@@ -1,6 +1,12 @@
 spring:
   application:
     name: ai-generation
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai-generation
+    username: root
+    password: 20050113
+
 server:
   port: 8080
   servlet:
@@ -13,4 +19,5 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
 
