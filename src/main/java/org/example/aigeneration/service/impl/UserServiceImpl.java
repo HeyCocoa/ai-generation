@@ -9,7 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
 import org.example.aigeneration.mapper.UserMapper;
-import org.example.aigeneration.model.dto.UserQueryRequest;
+import org.example.aigeneration.model.dto.user.UserQueryRequest;
 import org.example.aigeneration.model.entity.User;
 import org.example.aigeneration.model.enums.UserRoleEnum;
 import org.example.aigeneration.model.vo.LoginUserVO;

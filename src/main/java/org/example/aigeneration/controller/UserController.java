@@ -12,7 +12,7 @@ import org.example.aigeneration.constant.UserConstant;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
 import org.example.aigeneration.exception.ThrowUtils;
-import org.example.aigeneration.model.dto.*;
+import org.example.aigeneration.model.dto.user.*;
 import org.example.aigeneration.model.entity.User;
 import org.example.aigeneration.model.vo.LoginUserVO;
 import org.example.aigeneration.model.vo.UserVO;

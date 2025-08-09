@@ -3,7 +3,7 @@ package org.example.aigeneration.service;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.example.aigeneration.model.dto.UserQueryRequest;
+import org.example.aigeneration.model.dto.user.UserQueryRequest;
 import org.example.aigeneration.model.entity.User;
 import org.example.aigeneration.model.vo.LoginUserVO;
 import org.example.aigeneration.model.vo.UserVO;

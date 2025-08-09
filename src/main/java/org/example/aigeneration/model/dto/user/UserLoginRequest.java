@@ -1,4 +1,4 @@
-package org.example.aigeneration.model.dto;
+package org.example.aigeneration.model.dto.user;
 
 import lombok.Data;
 
