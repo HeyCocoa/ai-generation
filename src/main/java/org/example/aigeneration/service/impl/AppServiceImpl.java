@@ -2,21 +2,30 @@ package org.example.aigeneration.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
+import org.example.aigeneration.constant.AppConstant;
+import org.example.aigeneration.core.AiCodeGeneratorFacade;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
+import org.example.aigeneration.exception.ThrowUtils;
 import org.example.aigeneration.mapper.AppMapper;
 import org.example.aigeneration.model.dto.app.AppQueryRequest;
 import org.example.aigeneration.model.entity.App;
 import org.example.aigeneration.model.entity.User;
+import org.example.aigeneration.model.enums.CodeGenTypeEnum;
 import org.example.aigeneration.model.vo.AppVO;
 import org.example.aigeneration.model.vo.UserVO;
 import org.example.aigeneration.service.AppService;
 import org.example.aigeneration.service.UserService;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +42,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private UserService userService;
+    @Resource
+    private AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
     public AppVO getAppVO(App app){
         if( app==null ){
@@ -94,6 +105,71 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             appVO.setUser(userVO);
             return appVO;
         }).collect(Collectors.toList());
+    }
+
+    @Override
+    public Flux<String> chatToGenCode(String userMessage, Long appId, User loginUser){
+        //校验信息
+        ThrowUtils.throwIf(appId==null || appId < 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(userMessage==null, ErrorCode.PARAMS_ERROR, "用户信息不能为空");
+        //获取应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app==null, ErrorCode.PARAMS_ERROR, "应用不存在");
+        //校验权限
+        if( !app.getUserId().equals(loginUser.getId()) ){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有权限");
+        }
+        //获取生成文件类型
+        String fileType = app.getCodeGenType();
+        ThrowUtils.throwIf(fileType==null, ErrorCode.SYSTEM_ERROR, "不支持的文件生成类型");
+        //生成代码
+        return aiCodeGeneratorFacade
+                .generateAndSaveCodeStream(userMessage, CodeGenTypeEnum.getEnumByValue(fileType), appId);
+    }
+
+    @Override
+    public String deployApp(Long appId, User loginUser){
+        //校验信息
+        ThrowUtils.throwIf(appId==null || appId < 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        //获取应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app==null, ErrorCode.PARAMS_ERROR, "应用不存在");
+        //校验权限
+        if( !app.getUserId().equals(loginUser.getId()) ){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有权限");
+        }
+        //生成部署ID，如果有就不生成
+        String deployKey = app.getDeployKey();
+        if( deployKey==null ){
+            deployKey = RandomUtil.randomString(6);
+        }
+        //获取生成文件类型以及文件保存位置
+        String fileType = app.getCodeGenType();
+        String sourcePath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/" + fileType + "_" + appId;
+        //检查文件保存位置是否存在
+        File sourceFile = new File(sourcePath);
+        if( !sourceFile.exists() || !sourceFile.isDirectory() ){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件保存位置不存在");
+        }
+        //执行部署操作
+        String deployPath = AppConstant.CODE_DEPLOY_ROOT_DIR + "/" + deployKey;
+        try {
+            FileUtil.copyContent(sourceFile, new File(deployPath), true);
+        } catch( Exception e ) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败");
+        }
+        //更新应用信息
+        App appUpdate = App.builder()
+                .id(appId)
+                .deployKey(deployKey)
+                .deployedTime(LocalDateTime.now())
+                .build();
+        boolean update = this.updateById(appUpdate);
+        if( !update ){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新应用信息失败");
+        }
+        //返回可访问的URL
+        return String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
     }
 
 }
