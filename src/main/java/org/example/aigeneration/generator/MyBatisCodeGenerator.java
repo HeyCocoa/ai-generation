@@ -41,7 +41,7 @@ public class MyBatisCodeGenerator {
         // 创建配置内容
         GlobalConfig globalConfig = new GlobalConfig();
 
-        // 设置根包，建议先生成到一个临时目录下，生成代码后，再移动到项目目录下
+        // 设置根包，生成到一个临时目录下，生成代码后，再移动到项目目录下
         globalConfig.getPackageConfig()
                 .setBasePackage("org.example.aigeneration.tempGenerate");
 
