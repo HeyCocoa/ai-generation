@@ -7,6 +7,7 @@ import cn.hutool.core.util.RandomUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.example.aigeneration.constant.AppConstant;
 import org.example.aigeneration.core.AiCodeGeneratorFacade;
 import org.example.aigeneration.exception.BusinessException;
@@ -16,15 +17,18 @@ import org.example.aigeneration.mapper.AppMapper;
 import org.example.aigeneration.model.dto.app.AppQueryRequest;
 import org.example.aigeneration.model.entity.App;
 import org.example.aigeneration.model.entity.User;
+import org.example.aigeneration.model.enums.ChatHistoryMessageTypeEnum;
 import org.example.aigeneration.model.enums.CodeGenTypeEnum;
 import org.example.aigeneration.model.vo.AppVO;
 import org.example.aigeneration.model.vo.UserVO;
 import org.example.aigeneration.service.AppService;
+import org.example.aigeneration.service.ChatHistoryService;
 import org.example.aigeneration.service.UserService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,12 +42,15 @@ import java.util.stream.Collectors;
  * @author <a href="https://gitee.com/kokoa123">kokoa123</a>
  */
 @Service
+@Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService{
 
     @Resource
     private UserService userService;
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     public AppVO getAppVO(App app){
         if( app==null ){
@@ -122,9 +129,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         //获取生成文件类型
         String fileType = app.getCodeGenType();
         ThrowUtils.throwIf(fileType==null, ErrorCode.SYSTEM_ERROR, "不支持的文件生成类型");
+        //插入用户信息
+        chatHistoryService.addChatHistory(appId, userMessage, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         //生成代码
-        return aiCodeGeneratorFacade
-                .generateAndSaveCodeStream(userMessage, CodeGenTypeEnum.getEnumByValue(fileType), appId);
+        Flux<String> stream = aiCodeGeneratorFacade.generateAndSaveCodeStream(userMessage, CodeGenTypeEnum.getEnumByValue(fileType), appId);
+        StringBuilder sb = new StringBuilder();
+        return stream
+                .map(code->{
+                    sb.append(code);
+                    return code;
+                })
+                .doOnComplete(()->{
+                    chatHistoryService.addChatHistory(appId, sb.toString(), ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                })
+                .doOnError(e->{
+                    chatHistoryService.addChatHistory(appId, "生成失败: " + e.getMessage(), ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                });
     }
 
     @Override
@@ -170,6 +190,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         //返回可访问的URL
         return String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
+    }
+
+    @Override
+    public boolean removeById(Serializable id) {
+        if (id == null) {
+            return false;
+        }
+        // 转换为 Long 类型
+        long appId = Long.parseLong(id.toString());
+        if (appId <= 0) {
+            return false;
+        }
+        // 先删除关联的对话历史
+        try {
+            chatHistoryService.deleteByAppId(appId);
+        } catch (Exception e) {
+            // 记录日志但不阻止应用删除
+            log.error("删除应用关联对话历史失败: {}", e.getMessage());
+        }
+        // 删除应用
+        return super.removeById(id);
     }
 
 }

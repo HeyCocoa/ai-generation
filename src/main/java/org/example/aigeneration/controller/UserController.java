@@ -41,7 +41,7 @@ public class UserController{
      * @return {@code true} 保存成功，{@code false} 保存失败
      */
     @PostMapping ("/registry")
-    public BaseResponse<Long> registry(@RequestBody UserRegisterRequest userRegisterRequest){
+    public BaseResponse<Long> userRegistry(@RequestBody UserRegisterRequest userRegisterRequest){
         if( userRegisterRequest==null ){
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "请求参数为空");
         }
