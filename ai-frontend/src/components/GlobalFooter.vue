@@ -1,52 +1,37 @@
 <template>
-  <a-layout-footer class="global-footer">
+  <a-layout-footer class="footer">
     <div class="footer-content">
       <p class="copyright">
-        AI码生成平台 by 程序员kokoaaa
+        <a
+          href="https://gitee.com/kokoa123/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="author-link"
+        >
+          AI代码生成 by kokoa
+        </a>
       </p>
     </div>
   </a-layout-footer>
 </template>
 
 <script setup lang="ts">
-// 无需额外的逻辑
+// 无需额外的响应式数据
 </script>
 
 <style scoped>
-.global-footer {
-  background: #001529;
-  color: #fff;
+.footer {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
   text-align: center;
-  padding: 16px 24px;
-  position: relative;
-  bottom: 0;
-  width: 100%;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.footer-content {
-  width: 80%;
-  margin: 0 auto;
+  padding: 20px;
+  margin-top: 40px;
+  border-top: 1px solid rgba(102, 126, 234, 0.1);
 }
 
 .copyright {
   margin: 0;
+  color: #666;
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .global-footer {
-    padding: 12px 16px;
-    height: 60px;
-  }
-  
-  .copyright {
-    font-size: 12px;
-  }
 }
 </style>

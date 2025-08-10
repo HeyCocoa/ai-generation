@@ -99,9 +99,12 @@ export async function userLogout(options?: { [key: string]: any }) {
   })
 }
 
-/** 此处后端没有提供注释 POST /user/registry */
-export async function registry(body: API.UserRegisterRequest, options?: { [key: string]: any }) {
-  return request<API.BaseResponseLong>('/user/registry', {
+/** 此处后端没有提供注释 POST /user/register */
+export async function userRegister(
+  body: API.UserRegisterRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseLong>('/user/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
