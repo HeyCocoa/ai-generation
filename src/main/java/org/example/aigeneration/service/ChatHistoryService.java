@@ -3,6 +3,7 @@ package org.example.aigeneration.service;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import org.example.aigeneration.model.dto.chatHistory.ChatHistoryQueryRequest;
 import org.example.aigeneration.model.entity.ChatHistory;
 import org.example.aigeneration.model.entity.User;
@@ -20,6 +21,8 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     boolean deleteByAppId(Long appId);
 
     Page<ChatHistory> listAppChatHistoryByPage(Long appId, int pageSize, LocalDateTime lastCreateTime, User loginUser);
+
+    int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
 
     QueryWrapper getQueryWrapper(ChatHistoryQueryRequest request);
 }
