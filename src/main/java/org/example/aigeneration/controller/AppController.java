@@ -105,8 +105,6 @@ public class AppController{
         return ResultUtils.success(deployUrl);
     }
 
-
-
     /**
      * 创建应用
      *
