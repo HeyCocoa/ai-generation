@@ -10,6 +10,8 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.example.aigeneration.constant.AppConstant;
 import org.example.aigeneration.core.AiCodeGeneratorFacade;
+import org.example.aigeneration.core.builder.VueProjectBuilder;
+import org.example.aigeneration.core.handler.StreamHandlerExecutor;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
 import org.example.aigeneration.exception.ThrowUtils;
@@ -51,6 +53,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
     @Resource
     private ChatHistoryService chatHistoryService;
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     public AppVO getAppVO(App app){
         if( app==null ){
@@ -127,24 +133,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有权限");
         }
         //获取生成文件类型
-        String fileType = app.getCodeGenType();
+        CodeGenTypeEnum fileType = CodeGenTypeEnum.getEnumByValue(app.getCodeGenType());
         ThrowUtils.throwIf(fileType==null, ErrorCode.SYSTEM_ERROR, "不支持的文件生成类型");
         //插入用户信息
         chatHistoryService.addChatHistory(appId, userMessage, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         //生成代码
-        Flux<String> stream = aiCodeGeneratorFacade.generateAndSaveCodeStream(userMessage, CodeGenTypeEnum.getEnumByValue(fileType), appId);
-        StringBuilder sb = new StringBuilder();
-        return stream
-                .map(code->{
-                    sb.append(code);
-                    return code;
-                })
-                .doOnComplete(()->{
-                    chatHistoryService.addChatHistory(appId, sb.toString(), ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                })
-                .doOnError(e->{
-                    chatHistoryService.addChatHistory(appId, "生成失败: " + e.getMessage(), ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                });
+        Flux<String> stream = aiCodeGeneratorFacade.generateAndSaveCodeStream(userMessage, fileType, appId);
+        //执行流处理
+        return streamHandlerExecutor.doExecute(stream, chatHistoryService, appId, loginUser, fileType);
     }
 
     @Override
@@ -171,6 +167,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if( !sourceFile.exists() || !sourceFile.isDirectory() ){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件保存位置不存在");
         }
+        // Vue 项目特殊处理：执行构建
+        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(fileType);
+        if( codeGenTypeEnum==CodeGenTypeEnum.VUE_PROJECT ){
+            // Vue 项目需要构建
+            boolean buildSuccess = vueProjectBuilder.buildProject(sourcePath);
+            ThrowUtils.throwIf(!buildSuccess, ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败，请检查代码和依赖");
+            // 检查 dist 目录是否存在
+            File dist = new File(sourcePath, "dist");
+            ThrowUtils.throwIf(!dist.exists(), ErrorCode.SYSTEM_ERROR, "Vue 项目构建完成但未生成 dist 目录");
+            // 将 dist 目录作为部署源
+            sourceFile = dist;
+            log.info("Vue 项目构建成功，将部署 dist 目录: {}", dist.getAbsolutePath());
+        }
         //执行部署操作
         String deployPath = AppConstant.CODE_DEPLOY_ROOT_DIR + "/" + deployKey;
         try {
@@ -193,19 +202,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
-    public boolean removeById(Serializable id) {
-        if (id == null) {
+    public boolean removeById(Serializable id){
+        if( id==null ){
             return false;
         }
         // 转换为 Long 类型
         long appId = Long.parseLong(id.toString());
-        if (appId <= 0) {
+        if( appId <= 0 ){
             return false;
         }
         // 先删除关联的对话历史
         try {
             chatHistoryService.deleteByAppId(appId);
-        } catch (Exception e) {
+        } catch( Exception e ) {
             // 记录日志但不阻止应用删除
             log.error("删除应用关联对话历史失败: {}", e.getMessage());
         }
