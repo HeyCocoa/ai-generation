@@ -7,6 +7,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.aigeneration.annotation.AuthCheck;
 import org.example.aigeneration.common.BaseResponse;
 import org.example.aigeneration.common.DeleteRequest;
@@ -22,6 +23,7 @@ import org.example.aigeneration.model.entity.User;
 import org.example.aigeneration.model.enums.CodeGenTypeEnum;
 import org.example.aigeneration.model.vo.AppVO;
 import org.example.aigeneration.service.AppService;
+import org.example.aigeneration.service.ProjectDownloadService;
 import org.example.aigeneration.service.UserService;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,9 @@ public class AppController{
     private AppService appService;
     @Resource
     private UserService userService;
+    @Resource
+    private ProjectDownloadService projectDownloadService;
+
 
     /**
      * 应用聊天生成代码（流式 SSE）
@@ -340,4 +346,31 @@ public class AppController{
         return ResultUtils.success(appService.getAppVO(app));
     }
 
+
+    /**
+     * 下载应用代码
+     *
+     * @param appId    应用ID
+     * @param request  请求
+     * @param response 响应
+     */
+    @GetMapping("/download/{appId}")
+    public void downloadAppCode(@PathVariable Long appId, HttpServletRequest request, HttpServletResponse response) {
+        // 校验信息
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        // 查询信息
+        App app = appService.getById(appId);
+        User loginUser = userService.getLoginUser(request);
+        // 权限校验：只有应用创建者可以下载代码
+        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "没有权限下载代码");
+        // 检查代码文件是否存在, 若存在则生成文件名
+        String sourcePath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/" + app.getCodeGenType() + "_" + appId;
+        File file = new File(sourcePath);
+        if( !file.exists() || !file.isDirectory() ){
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "代码目录不存在");
+        }
+        String fileName = String.valueOf(appId);
+        // 调用通用下载服务
+        projectDownloadService.downloadProject(sourcePath, fileName, response);
+    }
 }
