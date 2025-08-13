@@ -59,4 +59,6 @@ public interface AppService extends IService<App>{
      * @return 返回一个字符串，可能表示部署结果或相关信息
      */
     String deployApp(Long appId, User loginUser);
+
+    void generateAppScreenshot(Long appId, String appUrl);
 }

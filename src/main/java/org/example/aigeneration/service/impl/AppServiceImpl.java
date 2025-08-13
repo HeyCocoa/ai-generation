@@ -25,6 +25,7 @@ import org.example.aigeneration.model.vo.AppVO;
 import org.example.aigeneration.model.vo.UserVO;
 import org.example.aigeneration.service.AppService;
 import org.example.aigeneration.service.ChatHistoryService;
+import org.example.aigeneration.service.ScreenshotService;
 import org.example.aigeneration.service.UserService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -57,6 +58,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private StreamHandlerExecutor streamHandlerExecutor;
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    @Resource
+    private ScreenshotService screenshotService;
 
     public AppVO getAppVO(App app){
         if( app==null ){
@@ -197,8 +200,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if( !update ){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新应用信息失败");
         }
+        //在部署时执行封面生成
+        String s = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        generateAppScreenshot(appId, s);
         //返回可访问的URL
-        return String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        return s;
     }
 
     @Override
@@ -222,4 +228,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return super.removeById(id);
     }
 
+    /**
+     * 异步生成应用截图并更新封面
+     *
+     * @param appId  应用ID
+     * @param appUrl 应用访问URL
+     */
+    @Override
+    public void generateAppScreenshot(Long appId, String appUrl){
+        // 调用截图服务生成截图并上传
+        String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+        // 更新应用封面字段
+        App app = new App();
+        app.setId(appId);
+        app.setCover(screenshotUrl);
+        boolean updated = this.updateById(app);
+        ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+    }
 }
