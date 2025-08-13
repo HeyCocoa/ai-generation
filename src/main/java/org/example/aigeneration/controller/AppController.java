@@ -8,6 +8,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.aigeneration.ai.AiCodeGenTypeRoutingService;
 import org.example.aigeneration.annotation.AuthCheck;
 import org.example.aigeneration.common.BaseResponse;
 import org.example.aigeneration.common.DeleteRequest;
@@ -20,7 +21,6 @@ import org.example.aigeneration.exception.ThrowUtils;
 import org.example.aigeneration.model.dto.app.*;
 import org.example.aigeneration.model.entity.App;
 import org.example.aigeneration.model.entity.User;
-import org.example.aigeneration.model.enums.CodeGenTypeEnum;
 import org.example.aigeneration.model.vo.AppVO;
 import org.example.aigeneration.service.AppService;
 import org.example.aigeneration.service.ProjectDownloadService;
@@ -51,6 +51,8 @@ public class AppController{
     private UserService userService;
     @Resource
     private ProjectDownloadService projectDownloadService;
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
 
     /**
@@ -99,11 +101,11 @@ public class AppController{
      * @param request          请求
      * @return 部署 URL
      */
-    @PostMapping("/deploy")
-    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
-        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
+    @PostMapping ("/deploy")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request){
+        ThrowUtils.throwIf(appDeployRequest==null, ErrorCode.PARAMS_ERROR);
         Long appId = appDeployRequest.getAppId();
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(appId==null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         // 调用服务部署应用
@@ -121,24 +123,12 @@ public class AppController{
     @PostMapping ("/add")
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request){
         ThrowUtils.throwIf(appAddRequest==null, ErrorCode.PARAMS_ERROR);
-        // 参数校验
-        String initPrompt = appAddRequest.getInitPrompt();
-        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
-        // 构造入库对象
-        App app = new App();
-        BeanUtil.copyProperties(appAddRequest, app);
-        app.setUserId(loginUser.getId());
-        // 应用名称暂时为 initPrompt 前 12 位
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-        // 暂时设置为Vue工程项目生成
-        app.setCodeGenType(CodeGenTypeEnum.VUE_PROJECT.getValue());
-        // 插入数据库
-        boolean result = appService.save(app);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(app.getId());
+        Long appId = appService.createApp(appAddRequest, loginUser);
+        return ResultUtils.success(appId);
     }
+
 
     /**
      * 更新应用（用户只能更新自己的应用名称）
@@ -354,10 +344,10 @@ public class AppController{
      * @param request  请求
      * @param response 响应
      */
-    @GetMapping("/download/{appId}")
-    public void downloadAppCode(@PathVariable Long appId, HttpServletRequest request, HttpServletResponse response) {
+    @GetMapping ("/download/{appId}")
+    public void downloadAppCode(@PathVariable Long appId, HttpServletRequest request, HttpServletResponse response){
         // 校验信息
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(appId==null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
         // 查询信息
         App app = appService.getById(appId);
         User loginUser = userService.getLoginUser(request);

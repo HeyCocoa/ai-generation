@@ -2,6 +2,7 @@ package org.example.aigeneration.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import org.example.aigeneration.model.dto.app.AppAddRequest;
 import org.example.aigeneration.model.dto.app.AppQueryRequest;
 import org.example.aigeneration.model.entity.App;
 import org.example.aigeneration.model.entity.User;
@@ -24,6 +25,8 @@ public interface AppService extends IService<App>{
      * @return AppVO对象，可能是视图对象或数据传输对象，用于展示或传输应用信息
      */
     AppVO getAppVO(App app);
+
+    Long createApp(AppAddRequest appAddRequest, User loginUser);
 
     /**
      * 根据应用查询请求参数构建查询条件包装器
@@ -54,7 +57,7 @@ public interface AppService extends IService<App>{
     /**
      * 部署应用程序的方法
      *
-     * @param appId        应用程序的唯一标识符
+     * @param appId     应用程序的唯一标识符
      * @param loginUser 当前登录用户的信息
      * @return 返回一个字符串，可能表示部署结果或相关信息
      */
