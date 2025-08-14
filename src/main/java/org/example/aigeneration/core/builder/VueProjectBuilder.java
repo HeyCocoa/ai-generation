@@ -11,6 +11,18 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class VueProjectBuilder{
 
+
+    public void buildProjectAsync(String projectPath) {
+        // 在单独的线程中执行构建，避免阻塞主流程
+        Thread.ofVirtual().name("vue-builder-" + System.currentTimeMillis()).start(() -> {
+            try {
+                buildProject(projectPath);
+            } catch (Exception e) {
+                log.error("异步构建 Vue 项目时发生异常: {}", e.getMessage(), e);
+            }
+        });
+    }
+
     public boolean buildProject(String project){
         File projectPath = new File(project);
         if( !projectPath.exists() || !projectPath.isDirectory() ){
@@ -111,3 +123,5 @@ public class VueProjectBuilder{
     }
 
 }
+
+

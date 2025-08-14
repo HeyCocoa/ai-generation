@@ -63,5 +63,12 @@ public interface AppService extends IService<App>{
      */
     String deployApp(Long appId, User loginUser);
 
-    void generateAppScreenshot(Long appId, String appUrl);
+    /**
+     * 异步生成应用截图的方法
+     * 该方法接收应用ID和应用URL作为参数，用于异步生成对应应用的截图
+     *
+     * @param appId  应用的唯一标识符，用于识别和定位具体应用
+     * @param appUrl 应用的访问地址，可能用于访问应用并生成截图
+     */
+    void generateAppScreenshotAsync(Long appId, String appUrl);
 }

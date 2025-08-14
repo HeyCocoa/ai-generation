@@ -1,17 +1,19 @@
 package org.example.aigeneration.core.handler;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.example.aigeneration.ai.model.message.*;
+import org.example.aigeneration.ai.tools.BaseTool;
+import org.example.aigeneration.ai.tools.ToolManager;
 import org.example.aigeneration.constant.AppConstant;
 import org.example.aigeneration.core.builder.VueProjectBuilder;
 import org.example.aigeneration.model.entity.User;
 import org.example.aigeneration.model.enums.ChatHistoryMessageTypeEnum;
 import org.example.aigeneration.service.ChatHistoryService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -28,6 +30,8 @@ public class JsonMessageStreamHandler{
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    @Autowired
+    private ToolManager toolManager;
 
     /**
      * 处理 TokenStream（VUE_PROJECT）
@@ -57,7 +61,7 @@ public class JsonMessageStreamHandler{
                     String aiResponse = chatHistoryStringBuilder.toString();
                     chatHistoryService.addChatHistory(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                     String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                    vueProjectBuilder.buildProject(projectPath);
+                    vueProjectBuilder.buildProjectAsync(projectPath);
                 })
                 .doOnError(error->{
                     // 如果AI回复失败，也要记录错误消息
@@ -84,11 +88,15 @@ public class JsonMessageStreamHandler{
             case TOOL_REQUEST -> {
                 ToolRequestMessage toolRequestMessage = JSONUtil.toBean(chunk, ToolRequestMessage.class);
                 String toolId = toolRequestMessage.getId();
+                String toolName = toolRequestMessage.getName();
                 // 检查是否是第一次看到这个工具 ID
                 if( toolId!=null && !seenToolIds.contains(toolId) ){
-                    // 第一次调用这个工具，记录 ID 并完整返回工具信息
+                    // 第一次调用这个工具，记录 ID 并返回工具信息
                     seenToolIds.add(toolId);
-                    return "\n\n[选择工具] 写入文件\n\n";
+                    // 根据工具名称获取工具实例
+                    BaseTool tool = toolManager.getTool(toolName);
+                    // 返回格式化的工具调用信息
+                    return tool.generateToolRequestResponse();
                 }
                 else{
                     // 不是第一次调用这个工具，直接返回空
@@ -97,16 +105,11 @@ public class JsonMessageStreamHandler{
             }
             case TOOL_EXECUTED -> {
                 ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(chunk, ToolExecutedMessage.class);
+                String toolName = toolExecutedMessage.getName();
                 JSONObject jsonObject = JSONUtil.parseObj(toolExecutedMessage.getArguments());
-                String relativeFilePath = jsonObject.getStr("relativeFilePath");
-                String suffix = FileUtil.getSuffix(relativeFilePath);
-                String content = jsonObject.getStr("content");
-                String result = String.format("""
-                        [工具调用] 写入文件 %s
-                        ```%s
-                        %s
-                        ```
-                        """, relativeFilePath, suffix, content);
+                // 根据工具名称获取工具实例并生成相应的结果格式
+                BaseTool tool = toolManager.getTool(toolName);
+                String result = tool.generateToolExecutedResult(jsonObject);
                 // 输出前端和要持久化的内容
                 String output = String.format("\n\n%s\n\n", result);
                 chatHistoryStringBuilder.append(output);

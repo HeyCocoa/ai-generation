@@ -10,7 +10,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.example.aigeneration.ai.tools.FileWriteTool;
+import org.example.aigeneration.ai.tools.*;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
 import org.example.aigeneration.model.enums.CodeGenTypeEnum;
@@ -34,6 +34,8 @@ public class AiCodeGeneratorServiceFactory{
     private RedisChatMemoryStore redisChatMemoryStore;
     @Resource
     private ChatHistoryService chatHistoryService;
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * AI 服务实例缓存
@@ -92,12 +94,11 @@ public class AiCodeGeneratorServiceFactory{
             // Vue 项目生成使用推理模型
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
-                    .chatMemoryProvider(memoryId->chatMemory)
-                    .tools(new FileWriteTool())
-                    .hallucinatedToolNameStrategy(toolExecutionRequest->
-                            ToolExecutionResultMessage.from(toolExecutionRequest,
-                                    "Error: there is no tool called " + toolExecutionRequest.name()
-                            ))
+                    .chatMemoryProvider(memoryId -> chatMemory)
+                    .tools(toolManager.getAllTools())
+                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                            toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
+                    ))
                     .build();
             // HTML 和多文件生成使用默认模型
             case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)

@@ -230,7 +230,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         //在部署时执行封面生成
         String s = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
-        generateAppScreenshot(appId, s);
+        generateAppScreenshotAsync(appId, s);
         //返回可访问的URL
         return s;
     }
@@ -263,14 +263,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appUrl 应用访问URL
      */
     @Override
-    public void generateAppScreenshot(Long appId, String appUrl){
-        // 调用截图服务生成截图并上传
-        String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
-        // 更新应用封面字段
-        App app = new App();
-        app.setId(appId);
-        app.setCover(screenshotUrl);
-        boolean updated = this.updateById(app);
-        ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+    public void generateAppScreenshotAsync(Long appId, String appUrl) {
+        // 使用虚拟线程异步执行
+        Thread.startVirtualThread(() -> {
+            // 调用截图服务生成截图并上传
+            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+            // 更新应用封面字段
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(screenshotUrl);
+            boolean updated = this.updateById(updateApp);
+            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+        });
     }
 }
