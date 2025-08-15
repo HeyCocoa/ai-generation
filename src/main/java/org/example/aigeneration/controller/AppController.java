@@ -21,6 +21,8 @@ import org.example.aigeneration.model.dto.app.*;
 import org.example.aigeneration.model.entity.App;
 import org.example.aigeneration.model.entity.User;
 import org.example.aigeneration.model.vo.AppVO;
+import org.example.aigeneration.ratelimit.annotation.RateLimit;
+import org.example.aigeneration.ratelimit.enums.RateLimitType;
 import org.example.aigeneration.service.AppService;
 import org.example.aigeneration.service.ProjectDownloadService;
 import org.example.aigeneration.service.UserService;
@@ -63,6 +65,7 @@ public class AppController{
      * @return 生成结果流
      */
     @GetMapping (value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit (limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 对话请求过于频繁，请稍后再试")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request){

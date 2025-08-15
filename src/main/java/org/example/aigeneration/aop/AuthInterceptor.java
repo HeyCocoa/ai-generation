@@ -9,7 +9,6 @@ import org.example.aigeneration.annotation.AuthCheck;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
 import org.example.aigeneration.model.entity.User;
-import org.example.aigeneration.model.enums.UserRoleEnum;
 import org.example.aigeneration.service.UserService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestAttributes;
@@ -17,7 +16,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import static org.example.aigeneration.constant.UserConstant.ADMIN_ROLE;
-import static org.example.aigeneration.constant.UserConstant.USER_LOGIN_STATE;
 
 @Aspect
 @Component
@@ -26,7 +24,7 @@ public class AuthInterceptor{
     @Resource
     private UserService userService;
 
-    @Around("@annotation(authCheck)")
+    @Around ("@annotation(authCheck)")
     public Object Interceptor(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable{
         //获取必要权限
         String mustRole = authCheck.mustRole();
@@ -45,7 +43,7 @@ public class AuthInterceptor{
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         //放行
-        else {
+        else{
             return joinPoint.proceed();
         }
     }

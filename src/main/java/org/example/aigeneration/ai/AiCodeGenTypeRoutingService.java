@@ -7,7 +7,6 @@ import org.example.aigeneration.model.enums.CodeGenTypeEnum;
  * AI代码生成类型智能路由服务
  * 使用结构化输出直接返回枚举类型
  *
- * @author yupi
  */
 public interface AiCodeGenTypeRoutingService {
 
