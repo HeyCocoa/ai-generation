@@ -10,6 +10,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.example.aigeneration.ai.guardrail.PromptSafetyInputGuardrail;
 import org.example.aigeneration.ai.tools.ToolManager;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
@@ -25,7 +26,7 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory{
 
-    @Resource(name = "openAiChatModel")
+    @Resource (name = "openAiChatModel")
     private ChatModel chatModel;
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -64,23 +65,25 @@ public class AiCodeGeneratorServiceFactory{
                 StreamingChatModel reasoningStreamingChatModel =
                         SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
-                    .streamingChatModel(reasoningStreamingChatModel)
-                    .chatMemoryProvider(memoryId->chatMemory)
-                    .tools(toolManager.getAllTools())
-                    .hallucinatedToolNameStrategy(toolExecutionRequest->ToolExecutionResultMessage.from(
-                            toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
-                    ))
-                    .build();
+                        .streamingChatModel(reasoningStreamingChatModel)
+                        .chatMemoryProvider(memoryId->chatMemory)
+                        .tools(toolManager.getAllTools())
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
+                        .hallucinatedToolNameStrategy(toolExecutionRequest->ToolExecutionResultMessage.from(
+                                toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
+                        ))
+                        .build();
             }
             // HTML 和多文件生成使用默认模型
             case HTML, MULTI_FILE -> {
                 //使用多例模式新建模型
                 StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
-                    .chatModel(chatModel)
-                    .streamingChatModel(openAiStreamingChatModel)
-                    .chatMemory(chatMemory)
-                    .build();
+                        .chatModel(chatModel)
+                        .streamingChatModel(openAiStreamingChatModel)
+                        .inputGuardrails(new PromptSafetyInputGuardrail())
+                        .chatMemory(chatMemory)
+                        .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                     "不支持的代码生成类型: " + codeGenType.getValue());
