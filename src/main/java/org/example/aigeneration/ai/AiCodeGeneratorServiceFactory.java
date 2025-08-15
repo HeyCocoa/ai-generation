@@ -11,6 +11,7 @@ import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.example.aigeneration.ai.guardrail.PromptSafetyInputGuardrail;
+import org.example.aigeneration.ai.guardrail.RetryOutputGuardrail;
 import org.example.aigeneration.ai.tools.ToolManager;
 import org.example.aigeneration.exception.BusinessException;
 import org.example.aigeneration.exception.ErrorCode;
@@ -69,6 +70,7 @@ public class AiCodeGeneratorServiceFactory{
                         .chatMemoryProvider(memoryId->chatMemory)
                         .tools(toolManager.getAllTools())
                         .inputGuardrails(new PromptSafetyInputGuardrail())
+                        .outputGuardrails(new RetryOutputGuardrail())
                         .hallucinatedToolNameStrategy(toolExecutionRequest->ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                         ))
@@ -82,6 +84,7 @@ public class AiCodeGeneratorServiceFactory{
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
                         .inputGuardrails(new PromptSafetyInputGuardrail())
+                        .outputGuardrails(new RetryOutputGuardrail())
                         .chatMemory(chatMemory)
                         .build();
             }
