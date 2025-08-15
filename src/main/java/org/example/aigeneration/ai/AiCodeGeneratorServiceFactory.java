@@ -61,8 +61,8 @@ public class AiCodeGeneratorServiceFactory{
             // Vue 项目生成使用推理模型
             case VUE_PROJECT -> {
                 //使用多例模式新建模型
-                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil
-                        .getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+                StreamingChatModel reasoningStreamingChatModel =
+                        SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId->chatMemory)

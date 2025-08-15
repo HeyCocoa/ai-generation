@@ -12,6 +12,8 @@ import org.example.aigeneration.ai.model.MultiFileCodeResult;
 import org.example.aigeneration.ai.model.message.AiResponseMessage;
 import org.example.aigeneration.ai.model.message.ToolExecutedMessage;
 import org.example.aigeneration.ai.model.message.ToolRequestMessage;
+import org.example.aigeneration.constant.AppConstant;
+import org.example.aigeneration.core.builder.VueProjectBuilder;
 import org.example.aigeneration.core.parser.CodeParserExecutor;
 import org.example.aigeneration.core.saver.CodeFileSaverExecutor;
 import org.example.aigeneration.exception.BusinessException;
@@ -30,31 +32,8 @@ public class AiCodeGeneratorFacade{
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
-
-    /**
-     * 统一入口：根据类型生成并保存代码
-     */
-    public File generateAndSaveCode(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId){
-        if( codeGenTypeEnum==null ){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
-        }
-        // 根据 appId 获取对应的 AI 服务实例
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
-        return switch( codeGenTypeEnum ){
-            case HTML -> {
-                HtmlCodeResult htmlCodeResult = aiCodeGeneratorService.generateHtmlCode(userMessage);
-                yield CodeFileSaverExecutor.executeSaver(htmlCodeResult, CodeGenTypeEnum.HTML, appId);
-            }
-            case MULTI_FILE -> {
-                MultiFileCodeResult multiFileCodeResult = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-                yield CodeFileSaverExecutor.executeSaver(multiFileCodeResult, CodeGenTypeEnum.MULTI_FILE, appId);
-            }
-            default -> {
-                String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
-            }
-        };
-    }
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     /**
      * 统一入口：根据类型生成并保存代码（流式SSE）
@@ -76,7 +55,7 @@ public class AiCodeGeneratorFacade{
             }
             case VUE_PROJECT -> {
                 TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                yield processTokenStream(tokenStream);
+                yield processTokenStream(tokenStream, appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -91,7 +70,7 @@ public class AiCodeGeneratorFacade{
      * @param tokenStream TokenStream 对象
      * @return Flux<String> 流式响应
      */
-    private Flux<String> processTokenStream(TokenStream tokenStream){
+    private Flux<String> processTokenStream(TokenStream tokenStream, Long appId){
         return Flux.create(sink->{
             tokenStream.onPartialResponse((String partialResponse)->{
                         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
@@ -106,6 +85,8 @@ public class AiCodeGeneratorFacade{
                         sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
                     })
                     .onCompleteResponse((ChatResponse response)->{
+                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+                        vueProjectBuilder.buildProjectAsync(projectPath);
                         sink.complete();
                     })
                     .onError((Throwable error)->{

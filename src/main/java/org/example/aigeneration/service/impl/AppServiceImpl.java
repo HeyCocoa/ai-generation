@@ -172,7 +172,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         chatHistoryService.addChatHistory(appId, userMessage, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         //生成代码
         Flux<String> stream = aiCodeGeneratorFacade.generateAndSaveCodeStream(userMessage, fileType, appId);
-        //执行流处理
+        //处理代码文件
         return streamHandlerExecutor.doExecute(stream, chatHistoryService, appId, loginUser, fileType);
     }
 
