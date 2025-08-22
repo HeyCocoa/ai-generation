@@ -1,0 +1,154 @@
+:root {
+  --app-bg-gradient: radial-gradient(1200px 600px at 10% 0%, #e4f4ff 0%, transparent 60%),
+    radial-gradient(1000px 500px at 90% 20%, #e8fff9 0%, transparent 60%),
+    linear-gradient(180deg, #f4faff 0%, #eef8ff 40%, #f0fffb 100%);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-dark: rgba(20, 22, 35, 0.55);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.35);
+  --glass-shadow: 0 10px 30px rgba(59, 130, 246, 0.12);
+  --primary-500: #3b82f6; /* blue-500 */
+  --primary-600: #2563eb; /* blue-600 */
+  --secondary-500: #22d3ee; /* cyan-400/500 */
+  --text-main: #1b1e28;
+  --text-subtle: #6b7280;
+  --chip-bg: rgba(255, 255, 255, 0.7);
+}
+
+html, body, #app {
+  background: var(--app-bg-gradient);
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 16px;
+}
+
+.pill-button-primary {
+  background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
+  color: #fff !important;
+  border: none !important;
+  border-radius: 999px !important;
+}
+
+.pill-button-ghost {
+  background: transparent !important;
+  color: var(--primary-600) !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+
+.rounded-panel {
+  border-radius: 20px;
+}
+
+.muted {
+  color: var(--text-subtle);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Ant Design reset tweaks */
+.ant-layout, .ant-layout-content, .ant-layout-header, .ant-layout-footer {
+  background: transparent !important;
+}
+
+.ant-btn.pill-button-primary:hover {
+  filter: brightness(1.05);
+}
+
+.ant-btn.pill-button-ghost:hover {
+  background: rgba(59, 130, 246, 0.06) !important;
+}
+
+
+/* Global button theming */
+.ant-btn {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease, background 0.25s ease, border-color 0.2s ease, color 0.2s ease;
+  will-change: transform;
+}
+
+.ant-btn:not([disabled]):hover {
+  transform: translateY(-1px);
+}
+
+.ant-btn:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.ant-btn-primary {
+  background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
+  border: none;
+  background-size: 200% 200%;
+}
+
+.ant-btn-primary:not([disabled]):hover,
+.ant-btn-primary:not([disabled]):focus {
+  filter: brightness(1.05);
+  box-shadow: 0 10px 24px rgba(122, 108, 255, 0.35);
+  background-position: 100% 0;
+}
+
+.ant-btn-default {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: var(--primary-600);
+}
+
+.ant-btn-default:not([disabled]):hover {
+  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: var(--primary-600);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+}
+
+.ant-btn-link {
+  color: var(--primary-600);
+}
+
+.ant-btn-link:not([disabled]):hover {
+  filter: brightness(1.05);
+}
+
+.ant-btn-ghost,
+.ant-btn[ghost] {
+  background: transparent !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: var(--primary-600) !important;
+}
+
+.ant-btn-ghost:not([disabled]):hover,
+.ant-btn[ghost]:not([disabled]):hover {
+  background: rgba(59, 130, 246, 0.06) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.45), 0 6px 16px rgba(59, 130, 246, 0.12);
+}
+
+.ant-btn-dangerous {
+  background: linear-gradient(135deg, #ff4d4f, #ff7a7a) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.ant-btn-dangerous:not([disabled]):hover,
+.ant-btn-dangerous:not([disabled]):focus {
+  box-shadow: 0 10px 24px rgba(255, 77, 79, 0.35);
+  filter: brightness(1.05);
+}
+
+.ant-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(122, 108, 255, 0.25);
+}
+
+

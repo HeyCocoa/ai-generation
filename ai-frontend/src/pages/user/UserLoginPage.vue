@@ -1,7 +1,7 @@
 <template>
-  <div id="userLoginPage">
-    <h2 class="title"> AI 应用生成 - 用户登录</h2>
-    <div class="desc">不写一行代码，生成完整应用</div>
+  <div id="userLoginPage" class="glass-card">
+    <h2 class="title gradient-text"> AI 应用生成 - 用户登录</h2>
+    <div class="desc muted">不写一行代码，生成完整应用</div>
     <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
       <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
         <a-input v-model:value="formState.userAccount" placeholder="请输入账号" />
@@ -20,7 +20,7 @@
         <RouterLink to="/user/register">去注册</RouterLink>
       </div>
       <a-form-item>
-        <a-button type="primary" html-type="submit" style="width: 100%">登录</a-button>
+        <a-button class="pill-button-primary" type="primary" html-type="submit" style="width: 100%">登录</a-button>
       </a-form-item>
     </a-form>
   </div>
@@ -62,26 +62,23 @@ const handleSubmit = async (values: any) => {
 
 <style scoped>
 #userLoginPage {
-  background: white;
   max-width: 720px;
-  padding: 24px;
-  margin: 24px auto;
+  padding: 32px 28px;
+  margin: 40px auto;
 }
 
 .title {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .desc {
   text-align: center;
-  color: #bbb;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .tips {
   text-align: right;
-  color: #bbb;
   font-size: 13px;
   margin-bottom: 16px;
 }

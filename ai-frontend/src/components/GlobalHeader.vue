@@ -1,5 +1,5 @@
 <template>
-  <a-layout-header class="header">
+  <a-layout-header class="header glass-card">
     <a-row :wrap="false">
       <!-- 左侧：Logo和标题 -->
       <a-col flex="200px">
@@ -30,6 +30,10 @@
               </a-space>
               <template #overlay>
                 <a-menu>
+                  <a-menu-item @click="editUserInfo">
+                    <UserOutlined />
+                    编辑信息
+                  </a-menu-item>
                   <a-menu-item @click="doLogout">
                     <LogoutOutlined />
                     退出登录
@@ -53,7 +57,7 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
+import { LogoutOutlined, HomeOutlined, UserOutlined } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -124,12 +128,16 @@ const doLogout = async () => {
     message.error('退出登录失败，' + res.data.message)
   }
 }
+
+// 编辑用户信息
+const editUserInfo = () => {
+  router.push('/user/info')
+}
 </script>
 
 <style scoped>
 .header {
-  background: #fff;
-  padding: 0 24px;
+  padding: 10px 24px;
 }
 
 .header-left {
@@ -146,10 +154,15 @@ const doLogout = async () => {
 .site-title {
   margin: 0;
   font-size: 18px;
-  color: #1890ff;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .ant-menu-horizontal {
   border-bottom: none !important;
+  background: transparent !important;
 }
 </style>

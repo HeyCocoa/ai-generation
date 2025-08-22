@@ -1,5 +1,5 @@
 <template>
-  <div class="app-card" :class="{ 'app-card--featured': featured }">
+  <div class="app-card glass-card" :class="{ 'app-card--featured': featured }">
     <div class="app-preview">
       <img v-if="app.cover" :src="app.cover" :alt="app.appName" />
       <div v-else class="app-placeholder">
@@ -7,8 +7,8 @@
       </div>
       <div class="app-overlay">
         <a-space>
-          <a-button type="primary" @click="handleViewChat">查看对话</a-button>
-          <a-button v-if="app.deployKey" type="default" @click="handleViewWork">查看作品</a-button>
+          <a-button class="pill-button-primary" type="primary" @click="handleViewChat">查看对话</a-button>
+          <a-button v-if="app.deployKey" class="pill-button-ghost" type="default" @click="handleViewWork">查看作品</a-button>
         </a-space>
       </div>
     </div>
@@ -56,12 +56,8 @@ const handleViewWork = () => {
 
 <style scoped>
 .app-card {
-  background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   transition:
     transform 0.3s,
     box-shadow 0.3s;
@@ -75,7 +71,7 @@ const handleViewWork = () => {
 
 .app-preview {
   height: 180px;
-  background: #f5f5f5;
+  background: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -100,7 +96,7 @@ const handleViewWork = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,9 +126,9 @@ const handleViewWork = () => {
 
 .app-title {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0 0 4px;
-  color: #1a1a1a;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

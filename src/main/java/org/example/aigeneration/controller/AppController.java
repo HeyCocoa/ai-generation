@@ -58,10 +58,6 @@ public class AppController{
     /**
      * 应用聊天生成代码（流式 SSE）
      * 该接口使用Server-Sent Events(SSE)技术实现服务端向客户端推送流式数据
-     *
-     * @param appId   应用 ID，用于标识当前交互的应用程序
-     * @param message 用户消息
-     * @param request 请求对象
      * @return 生成结果流
      */
     @GetMapping (value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -97,9 +93,6 @@ public class AppController{
 
     /**
      * 应用部署
-     *
-     * @param appDeployRequest 部署请求
-     * @param request          请求
      * @return 部署 URL
      */
     @PostMapping ("/deploy")
@@ -133,9 +126,6 @@ public class AppController{
 
     /**
      * 更新应用（用户只能更新自己的应用名称）
-     *
-     * @param appUpdateRequest 更新请求
-     * @param request          请求
      * @return 更新结果
      */
     @PostMapping ("/update")
@@ -213,6 +203,7 @@ public class AppController{
     @PostMapping ("/my/list/page/vo")
     public BaseResponse<Page<AppVO>> listMyAppVOByPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request){
         ThrowUtils.throwIf(appQueryRequest==null, ErrorCode.PARAMS_ERROR);
+        // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         // 限制每页最多 20 个
         long pageSize = appQueryRequest.getPageSize();

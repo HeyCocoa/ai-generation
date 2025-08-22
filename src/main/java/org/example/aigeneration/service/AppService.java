@@ -26,6 +26,13 @@ public interface AppService extends IService<App>{
      */
     AppVO getAppVO(App app);
 
+    /**
+     * 创建新应用的方法
+     *
+     * @param appAddRequest 应用的添加请求参数，包含创建应用所需的所有信息
+     * @param loginUser     当前登录用户信息，用于验证用户权限和关联创建者信息
+     * @return 返回创建成功的应用ID(Long类型)，如果创建失败则返回null或其他错误标识
+     */
     Long createApp(AppAddRequest appAddRequest, User loginUser);
 
     /**

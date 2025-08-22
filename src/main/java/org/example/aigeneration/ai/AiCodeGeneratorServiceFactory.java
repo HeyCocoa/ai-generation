@@ -36,14 +36,6 @@ public class AiCodeGeneratorServiceFactory{
     @Resource
     private ToolManager toolManager;
 
-    /**
-     * 根据 appId 和代码生成类型获取服务（带缓存）
-     */
-    public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType){
-        String cacheKey = buildCacheKey(appId, codeGenType);
-        return serviceCache.get(cacheKey, key->createAiCodeGeneratorService(appId, codeGenType));
-    }
-
 
     /**
      * 创建新的 AI 服务实例
@@ -79,7 +71,8 @@ public class AiCodeGeneratorServiceFactory{
             // HTML 和多文件生成使用默认模型
             case HTML, MULTI_FILE -> {
                 //使用多例模式新建模型
-                StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
+                StreamingChatModel openAiStreamingChatModel =
+                        SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
@@ -92,6 +85,16 @@ public class AiCodeGeneratorServiceFactory{
                     "不支持的代码生成类型: " + codeGenType.getValue());
         };
     }
+
+
+    /**
+     * 根据 appId 和代码生成类型获取服务（带缓存）
+     */
+    public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType){
+        String cacheKey = buildCacheKey(appId, codeGenType);
+        return serviceCache.get(cacheKey, key->createAiCodeGeneratorService(appId, codeGenType));
+    }
+
 
     /**
      * AI 服务实例缓存

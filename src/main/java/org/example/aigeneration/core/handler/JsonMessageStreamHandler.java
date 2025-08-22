@@ -28,8 +28,6 @@ import java.util.Set;
 @Component
 public class JsonMessageStreamHandler{
 
-    @Resource
-    private VueProjectBuilder vueProjectBuilder;
     @Autowired
     private ToolManager toolManager;
 

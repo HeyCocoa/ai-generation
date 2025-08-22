@@ -7,8 +7,6 @@ import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import org.example.aigeneration.ai.AiCodeGeneratorService;
 import org.example.aigeneration.ai.AiCodeGeneratorServiceFactory;
-import org.example.aigeneration.ai.model.HtmlCodeResult;
-import org.example.aigeneration.ai.model.MultiFileCodeResult;
 import org.example.aigeneration.ai.model.message.AiResponseMessage;
 import org.example.aigeneration.ai.model.message.ToolExecutedMessage;
 import org.example.aigeneration.ai.model.message.ToolRequestMessage;
@@ -22,10 +20,8 @@ import org.example.aigeneration.model.enums.CodeGenTypeEnum;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
-import java.io.File;
-
 /**
- * AI 代码生成外观类，组合生成和保存功能
+ * AI 代码生成门面类，组合生成和保存功能
  */
 @Service
 public class AiCodeGeneratorFacade{
@@ -66,40 +62,55 @@ public class AiCodeGeneratorFacade{
 
     /**
      * 将 TokenStream 转换为 Flux<String>，并传递工具调用信息
-     *
-     * @param tokenStream TokenStream 对象
-     * @return Flux<String> 流式响应
+     * 该方法通过创建一个 Flux 流来处理 TokenStream 中的各种事件，
+     * 包括部分响应、工具执行请求、工具执行完成以及错误处理等。
      */
     private Flux<String> processTokenStream(TokenStream tokenStream, Long appId){
+        // 使用 Flux.create 创建一个 Flux 流
+        // sink 用于向下游发送信号（next、complete、error）
         return Flux.create(sink->{
+            // 处理部分响应事件
+            // 将部分响应封装为 AiResponseMessage 并转换为 JSON 字符串发送
             tokenStream.onPartialResponse((String partialResponse)->{
                         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
                         sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                     })
+                    // 处理部分工具执行请求事件
+                    // 将工具执行请求封装为 ToolRequestMessage 并转换为 JSON 字符串发送
                     .onPartialToolExecutionRequest((index, toolExecutionRequest)->{
                         ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
                         sink.next(JSONUtil.toJsonStr(toolRequestMessage));
                     })
+                    // 处理工具执行完成事件
+                    // 将工具执行结果封装为 ToolExecutedMessage 并转换为 JSON 字符串发送
                     .onToolExecuted((ToolExecution toolExecution)->{
                         ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
                         sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
                     })
+                    // 处理完整响应事件
+                    // 构建项目路径并异步构建项目，然后完成流
                     .onCompleteResponse((ChatResponse response)->{
+                        // 根据appId生成项目路径
                         String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                        vueProjectBuilder.buildProjectAsync(projectPath);
+                        // 异步构建项目
+                        vueProjectBuilder.buildProject(projectPath);
+                        // 完成流
                         sink.complete();
                     })
+                    // 处理错误事件
+                    // 打印错误堆栈并向下游发送错误信号
                     .onError((Throwable error)->{
                         error.printStackTrace();
                         sink.error(error);
                     })
+                    // 启动 TokenStream 的处理
                     .start();
         });
     }
 
 
     /**
-     * 流式生成并保存HTML代码
+     * 流式生成并保存（除Vue项目外）文件
      */
     private Flux<String> processCodeStream(Flux<String> stream, CodeGenTypeEnum codeGenTypeEnum, Long appId){
         StringBuilder sb = new StringBuilder();

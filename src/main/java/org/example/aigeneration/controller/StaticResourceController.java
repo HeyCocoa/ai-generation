@@ -15,6 +15,10 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import java.io.File;
 
+/**
+ * 静态资源控制器
+ * 用于提供静态资源访问服务，支持目录重定向和默认页面返回
+ */
 @RestController
 @RequestMapping ("/static")
 public class StaticResourceController{
@@ -25,11 +29,12 @@ public class StaticResourceController{
     /**
      * 提供静态资源访问，支持目录重定向
      * 访问格式：http://localhost:8080/api/static/{deployKey}[/{fileName}]
+     * @param deployKey 部署密钥，用于标识不同的静态资源集合
+     * @param request HTTP请求对象，用于获取请求路径信息
+     * @return ResponseEntity 包含所请求的静态资源或错误信息
      */
     @GetMapping ("/{deployKey}/**")
-    public ResponseEntity<Resource> serveStaticResource(
-            @PathVariable String deployKey,
-            HttpServletRequest request){
+    public ResponseEntity<Resource> serveStaticResource(@PathVariable String deployKey, HttpServletRequest request){
         try {
             // 获取资源路径
             String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -63,6 +68,8 @@ public class StaticResourceController{
 
     /**
      * 根据文件扩展名返回带字符编码的 Content-Type
+     * @param filePath 文件路径，用于获取文件扩展名
+     * @return Content-Type 字符串，包含文件类型和字符编码（如适用）
      */
     private String getContentTypeWithCharset(String filePath){
         if( filePath.endsWith(".html") ) return "text/html; charset=UTF-8";

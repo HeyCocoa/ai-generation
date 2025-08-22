@@ -10,7 +10,6 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.example.aigeneration.constant.UserConstant;
 import org.example.aigeneration.exception.ErrorCode;
 import org.example.aigeneration.exception.ThrowUtils;
 import org.example.aigeneration.mapper.ChatHistoryMapper;
@@ -44,10 +43,11 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
 
     /**
      * 添加聊天历史记录
-     * @param appId 应用ID
-     * @param message 聊天消息内容
+     *
+     * @param appId       应用ID
+     * @param message     聊天消息内容
      * @param messageType 消息类型
-     * @param userId 用户ID
+     * @param userId      用户ID
      * @return 是否添加成功
      */
     @Override
@@ -86,7 +86,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ThrowUtils.throwIf(pageSize < 1 || pageSize > 50, ErrorCode.PARAMS_ERROR, "pageSize不能小于1或大于50");
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app==null, ErrorCode.PARAMS_ERROR, "应用不存在");
-        //校验权限, 只有管理员和用户自己可以查看
+        //校验权限, 用户只能查看自己的应用以及精选应用
         boolean isAdmin = app.getUserId().equals(loginUser.getId());
         boolean is99 = app.getPriority()==99L;
         ThrowUtils.throwIf(!isAdmin && !is99, ErrorCode.NO_AUTH_ERROR, "没有权限");
@@ -100,7 +100,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     }
 
     @Override
-    public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
+    public int loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount){
         try {
             // 直接构造查询条件，起始点为 1 而不是 0，用于排除最新的用户消息
             QueryWrapper queryWrapper = QueryWrapper.create()
@@ -108,7 +108,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                     .orderBy(ChatHistory::getCreateTime, false)
                     .limit(1, maxCount);
             List<ChatHistory> historyList = this.list(queryWrapper);
-            if ( CollUtil.isEmpty(historyList)){
+            if( CollUtil.isEmpty(historyList) ){
                 return 0;
             }
             // 反转列表，确保按时间正序（老的在前，新的在后）
@@ -117,18 +117,19 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             int loadedCount = 0;
             // 先清理历史缓存，防止重复加载
             chatMemory.clear();
-            for (ChatHistory history : historyList) {
-                if (ChatHistoryMessageTypeEnum.USER.getValue().equals(history.getMessageType())) {
+            for( ChatHistory history : historyList ){
+                if( ChatHistoryMessageTypeEnum.USER.getValue().equals(history.getMessageType()) ){
                     chatMemory.add(UserMessage.from(history.getMessage()));
                     loadedCount++;
-                } else if (ChatHistoryMessageTypeEnum.AI.getValue().equals(history.getMessageType())) {
+                }
+                else if( ChatHistoryMessageTypeEnum.AI.getValue().equals(history.getMessageType()) ){
                     chatMemory.add(AiMessage.from(history.getMessage()));
                     loadedCount++;
                 }
             }
             log.info("成功为 appId: {} 加载了 {} 条历史对话", appId, loadedCount);
             return loadedCount;
-        } catch (Exception e) {
+        } catch( Exception e ) {
             log.error("加载历史对话失败，appId: {}, error: {}", appId, e.getMessage(), e);
             // 加载失败不影响系统运行，只是没有历史上下文
             return 0;

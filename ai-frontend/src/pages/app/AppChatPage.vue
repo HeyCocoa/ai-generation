@@ -7,6 +7,12 @@
         <a-tag v-if="appInfo?.codeGenType" color="blue" class="code-gen-type-tag">
           {{ formatCodeGenType(appInfo.codeGenType) }}
         </a-tag>
+        <a-tag color="green" class="conversation-rounds-tag">
+          <template #icon>
+            <MessageOutlined />
+          </template>
+          对话轮次：{{ totalConversationRounds }}
+        </a-tag>
       </div>
       <div class="header-right">
         <a-button type="default" @click="showAppDetail">
@@ -18,6 +24,7 @@
         <a-button
           type="primary"
           ghost
+          class="download-white"
           @click="downloadCode"
           :loading="downloading"
           :disabled="!isOwner"
@@ -40,6 +47,16 @@
     <div class="main-content">
       <!-- 左侧对话区域 -->
       <div class="chat-section">
+        <!-- 对话统计信息 -->
+        <div class="conversation-stats">
+          <div class="stats-item">
+            <MessageOutlined />
+            <span>当前对话轮次：{{ totalConversationRounds }}</span>
+          </div>
+          <div class="stats-item">
+            <span>总消息数：{{ messages.length }}</span>
+          </div>
+        </div>
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
           <!-- 加载更多按钮 -->
@@ -237,6 +254,7 @@ import {
   ExportOutlined,
   InfoCircleOutlined,
   SendOutlined,
+  MessageOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -294,6 +312,11 @@ const isOwner = computed(() => {
 
 const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
+})
+
+// 对话轮次相关
+const totalConversationRounds = computed(() => {
+  return messages.value.filter(msg => msg.type === 'user').length
 })
 
 // 应用详情相关
@@ -775,7 +798,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   padding: 16px;
-  background: #fdfdfd;
+  background: transparent;
 }
 
 /* 顶部栏 */
@@ -784,6 +807,12 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: var(--glass-shadow);
 }
 
 .header-left {
@@ -796,11 +825,19 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
+.conversation-rounds-tag {
+  font-size: 12px;
+  font-weight: 500;
+}
+
 .app-name {
   margin: 0;
   font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .header-right {
@@ -822,14 +859,38 @@ onUnmounted(() => {
   flex: 2;
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--glass-bg);
+  border-radius: 20px;
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
   overflow: hidden;
 }
 
+/* 对话统计信息 */
+.conversation-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 13px;
+  color: var(--text-main);
+}
+
+.stats-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-item .anticon {
+  color: var(--primary-500);
+  font-size: 14px;
+}
+
 .messages-container {
-  flex: 0.9;
+  flex: 1;
   padding: 16px;
   overflow-y: auto;
   scroll-behavior: smooth;
@@ -862,14 +923,16 @@ onUnmounted(() => {
 }
 
 .user-message .message-content {
-  background: #1890ff;
+  background: linear-gradient(135deg, var(--primary-500), var(--secondary-500));
   color: white;
+  box-shadow: 0 6px 16px rgba(122, 108, 255, 0.25);
 }
 
 .ai-message .message-content {
-  background: #f5f5f5;
+  background: rgba(255, 255, 255, 0.7);
   color: #1a1a1a;
   padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .message-avatar {
@@ -893,7 +956,7 @@ onUnmounted(() => {
 /* 输入区域 */
 .input-container {
   padding: 16px;
-  background: white;
+  background: transparent;
 }
 
 .input-wrapper {
@@ -915,9 +978,10 @@ onUnmounted(() => {
   flex: 3;
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--glass-bg);
+  border-radius: 20px;
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
   overflow: hidden;
 }
 
@@ -926,18 +990,26 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
 }
 
 .preview-header h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--text-main);
 }
 
 .preview-actions {
   display: flex;
   gap: 8px;
+}
+
+/* 仅调整“下载代码”按钮字体为白色 */
+.download-white,
+.download-white span,
+.download-white .anticon {
+  color: #fff !important;
 }
 
 .preview-content {
@@ -1005,6 +1077,16 @@ onUnmounted(() => {
     font-size: 16px;
   }
 
+  .conversation-stats {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .stats-item {
+    font-size: 12px;
+  }
+
   .main-content {
     padding: 8px;
     gap: 8px;
@@ -1044,7 +1126,7 @@ onUnmounted(() => {
     font-family: 'Monaco', 'Menlo', monospace;
     font-size: 14px;
     font-weight: 600;
-    color: #007bff;
+    color: var(--primary-600);
   }
 
   .element-id {

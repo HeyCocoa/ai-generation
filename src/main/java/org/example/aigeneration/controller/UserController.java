@@ -33,7 +33,6 @@ public class UserController{
     @Resource
     private UserService userService;
 
-
     /**
      * 注册。
      *
@@ -52,7 +51,6 @@ public class UserController{
         return ResultUtils.success(userId);
     }
 
-
     /**
      * 用户登录。
      */
@@ -65,7 +63,6 @@ public class UserController{
         return ResultUtils.success(loginUserVO);
     }
 
-
     /**
      * 获取当前用户。
      */
@@ -75,7 +72,6 @@ public class UserController{
         LoginUserVO loginUserVO = userService.getLoginUserVO(user);
         return ResultUtils.success(loginUserVO);
     }
-
 
     /**
      * 注销 (退出登录)。
@@ -87,6 +83,15 @@ public class UserController{
         return ResultUtils.success(bool);
     }
 
+    /**
+     * 根据 id 获取包装类
+     */
+    @GetMapping ("/get/vo")
+    public BaseResponse<UserVO> getUserVOById(long id){
+        BaseResponse<User> response = getUserById(id);
+        User user = response.getData();
+        return ResultUtils.success(userService.getUserVO(user));
+    }
 
     /**
      * 创建用户
@@ -106,25 +111,15 @@ public class UserController{
     }
 
     /**
-     * 根据 id 获取用户（仅管理员）
+     * 根据 id 获取用户
      */
     @GetMapping ("/get")
-    @AuthCheck (mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck (mustRole = UserConstant.ADMIN_ROLE, mustUserId = "id")
     public BaseResponse<User> getUserById(long id){
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         User user = userService.getById(id);
         ThrowUtils.throwIf(user==null, ErrorCode.NOT_FOUND_ERROR);
         return ResultUtils.success(user);
-    }
-
-    /**
-     * 根据 id 获取包装类
-     */
-    @GetMapping ("/get/vo")
-    public BaseResponse<UserVO> getUserVOById(long id){
-        BaseResponse<User> response = getUserById(id);
-        User user = response.getData();
-        return ResultUtils.success(userService.getUserVO(user));
     }
 
     /**
@@ -144,7 +139,7 @@ public class UserController{
      * 更新用户
      */
     @PostMapping ("/update")
-    @AuthCheck (mustRole = UserConstant.ADMIN_ROLE)
+    @AuthCheck (mustRole = UserConstant.ADMIN_ROLE, mustUserId = "#userUpdateRequest.id")
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest){
         if( userUpdateRequest==null || userUpdateRequest.getId()==null ){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

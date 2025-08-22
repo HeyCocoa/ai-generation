@@ -23,7 +23,7 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 
 .main-content {
   width: 100%;
-  padding: 0;
+  padding: 16px;
   background: none;
   margin: 0;
 }

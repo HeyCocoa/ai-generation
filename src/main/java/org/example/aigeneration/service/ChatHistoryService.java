@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
  * @author <a href="https://gitee.com/kokoa123">kokoa123</a>
  */
 public interface ChatHistoryService extends IService<ChatHistory> {
+
     boolean addChatHistory(Long appId, String message, String messageType, Long userId);
 
     boolean deleteByAppId(Long appId);

@@ -68,14 +68,23 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
 
+    /**
+     * 将App实体对象转换为AppVO视图对象
+     *
+     * @param app App实体对象
+     * @return 转换后的AppVO视图对象，如果输入为null则返回null
+     */
     public AppVO getAppVO(App app){
+        // 参数校验，如果app为null则直接返回null
         if( app==null ){
             return null;
         }
+        // 创建AppVO实例并复制app的属性
         AppVO appVO = new AppVO();
         BeanUtil.copyProperties(app, appVO);
         // 关联查询用户信息
         Long userId = app.getUserId();
+        // 如果userId不为空，则查询用户信息并设置到appVO中
         if( userId!=null ){
             User user = userService.getById(userId);
             UserVO userVO = userService.getUserVO(user);
@@ -136,14 +145,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Override
     public List<AppVO> getAppVOList(List<App> appList){
+        // 检查输入的appList是否为空，如果为空则返回一个新的空ArrayList
         if( CollUtil.isEmpty(appList) ){
             return new ArrayList<>();
         }
         // 批量获取用户信息，避免 N+1 查询问题
-        Set<Long> userIds = appList.stream()
+        Set<Long> userIds = appList
+                .stream()
                 .map(App::getUserId)
                 .collect(Collectors.toSet());
-        Map<Long, UserVO> userVOMap = userService.listByIds(userIds).stream()
+        Map<Long, UserVO> userVOMap = userService.listByIds(userIds)
+                .stream()
                 .collect(Collectors.toMap(User::getId, userService::getUserVO));
         return appList.stream().map(app->{
             AppVO appVO = getAppVO(app);
@@ -231,7 +243,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新应用信息失败");
         }
         //在部署时执行封面生成
-        String s = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        String s = String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
         generateAppScreenshotAsync(appId, s);
         //返回可访问的URL
         return s;
@@ -265,9 +277,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appUrl 应用访问URL
      */
     @Override
-    public void generateAppScreenshotAsync(Long appId, String appUrl) {
+    public void generateAppScreenshotAsync(Long appId, String appUrl){
         // 使用虚拟线程异步执行
-        Thread.startVirtualThread(() -> {
+        Thread.startVirtualThread(()->{
             // 调用截图服务生成截图并上传
             String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
             // 更新应用封面字段
