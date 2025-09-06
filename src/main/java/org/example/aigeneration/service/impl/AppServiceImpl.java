@@ -31,6 +31,7 @@ import org.example.aigeneration.service.AppService;
 import org.example.aigeneration.service.ChatHistoryService;
 import org.example.aigeneration.service.ScreenshotService;
 import org.example.aigeneration.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -66,7 +67,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private ScreenshotService screenshotService;
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
-
+    @Value ("${code.deploy-host:http://localhost}")
+    private String deployHost;
 
     /**
      * 将App实体对象转换为AppVO视图对象
@@ -242,8 +244,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if( !update ){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新应用信息失败");
         }
-        //在部署时执行封面生成
-        String s = String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        // 10. 构建应用访问 URL
+        String s = String.format("%s/%s/", deployHost, deployKey);
+        // 11. 异步生成应用截图并更新封面
         generateAppScreenshotAsync(appId, s);
         //返回可访问的URL
         return s;

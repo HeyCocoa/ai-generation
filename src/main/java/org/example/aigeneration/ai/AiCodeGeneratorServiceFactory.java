@@ -62,10 +62,13 @@ public class AiCodeGeneratorServiceFactory{
                         .chatMemoryProvider(memoryId->chatMemory)
                         .tools(toolManager.getAllTools())
                         .inputGuardrails(new PromptSafetyInputGuardrail())
-                        .outputGuardrails(new RetryOutputGuardrail())
+                        // 注释掉输出护栏以避免缓冲问题，提升流式体验
+                        // .outputGuardrails(new RetryOutputGuardrail())
                         .hallucinatedToolNameStrategy(toolExecutionRequest->ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                         ))
+                        // 限制最大工具调用次数，防止无限循环
+                        .maxSequentialToolsInvocations(15)
                         .build();
             }
             // HTML 和多文件生成使用默认模型
@@ -77,7 +80,8 @@ public class AiCodeGeneratorServiceFactory{
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
                         .inputGuardrails(new PromptSafetyInputGuardrail())
-                        .outputGuardrails(new RetryOutputGuardrail())
+                        // 注释掉输出护栏以避免缓冲问题
+                        // .outputGuardrails(new RetryOutputGuardrail())
                         .chatMemory(chatMemory)
                         .build();
             }

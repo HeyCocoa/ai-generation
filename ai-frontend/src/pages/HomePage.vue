@@ -18,7 +18,7 @@ const creating = ref(false)
 const myApps = ref<API.AppVO[]>([])
 const myAppsPage = reactive({
   current: 1,
-  pageSize: 6,
+  pageSize: 3,
   total: 0,
 })
 
@@ -26,7 +26,7 @@ const myAppsPage = reactive({
 const featuredApps = ref<API.AppVO[]>([])
 const featuredAppsPage = reactive({
   current: 1,
-  pageSize: 6,
+  pageSize: 3,
   total: 0,
 })
 

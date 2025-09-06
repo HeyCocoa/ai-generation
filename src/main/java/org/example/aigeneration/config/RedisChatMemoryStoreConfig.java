@@ -1,5 +1,6 @@
 package org.example.aigeneration.config;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -9,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties (prefix = "spring.data.redis")
 @Data
-public class RedisChatMemoryStoreConfig {
+public class RedisChatMemoryStoreConfig{
 
     private String host;
 
@@ -20,12 +21,16 @@ public class RedisChatMemoryStoreConfig {
     private long ttl;
 
     @Bean
-    public RedisChatMemoryStore redisChatMemoryStore() {
-        return RedisChatMemoryStore.builder()
+    public RedisChatMemoryStore redisChatMemoryStore(){
+        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
                 .host(host)
                 .port(port)
                 .password(password)
-                .ttl(ttl)
-                .build();
+                .ttl(ttl);
+        if( StrUtil.isNotBlank(password) ){
+            builder.user("default");
+        }
+        return builder.build();
     }
+
 }

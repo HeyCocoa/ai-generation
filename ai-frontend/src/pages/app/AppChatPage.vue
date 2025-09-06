@@ -167,8 +167,18 @@
         <div class="preview-header">
           <h3>生成后的网页展示</h3>
           <div class="preview-actions">
+            <a-radio-group
+              v-model:value="viewMode"
+              option-type="button"
+              button-style="solid"
+              size="small"
+              style="margin-right: 8px"
+            >
+              <a-radio-button value="preview">预览</a-radio-button>
+              <a-radio-button value="code">代码</a-radio-button>
+            </a-radio-group>
             <a-button
-              v-if="isOwner && previewUrl"
+              v-if="viewMode === 'preview' && isOwner && previewUrl"
               type="link"
               :danger="isEditMode"
               @click="toggleEditMode"
@@ -180,7 +190,7 @@
               </template>
               {{ isEditMode ? '退出编辑' : '编辑模式' }}
             </a-button>
-            <a-button v-if="previewUrl" type="link" @click="openInNewTab">
+            <a-button v-if="viewMode === 'preview' && previewUrl" type="link" @click="openInNewTab">
               <template #icon>
                 <ExportOutlined />
               </template>
@@ -189,16 +199,31 @@
           </div>
         </div>
         <div class="preview-content">
-          <div v-if="!previewUrl && !isGenerating" class="preview-placeholder">
+          <!-- 代码多文件标签展示（从最新 AI 回复中解析） -->
+          <div v-if="viewMode === 'code'" class="code-tabs">
+            <div v-if="!latestCodeBlocks.length" class="code-empty">暂无可展示的代码片段</div>
+            <template v-else>
+            <a-tabs size="small">
+              <a-tab-pane
+                v-for="(block, idx) in latestCodeBlocks"
+                :key="idx"
+                :tab="block.title"
+              >
+                <pre class="code-block"><code :class="'language-' + (block.language || 'text')">{{ block.code }}</code></pre>
+              </a-tab-pane>
+            </a-tabs>
+            </template>
+          </div>
+          <div v-if="viewMode === 'preview' && !previewUrl && !isGenerating" class="preview-placeholder">
             <div class="placeholder-icon">🌐</div>
             <p>网站文件生成完成后将在这里展示</p>
           </div>
-          <div v-else-if="isGenerating" class="preview-loading">
+          <div v-else-if="viewMode === 'preview' && isGenerating" class="preview-loading">
             <a-spin size="large" />
             <p>正在生成网站...</p>
           </div>
           <iframe
-            v-else
+            v-else-if="viewMode === 'preview'"
             :src="previewUrl"
             class="preview-iframe"
             frameborder="0"
@@ -303,6 +328,74 @@ const visualEditor = new VisualEditor({
   onElementSelected: (elementInfo: ElementInfo) => {
     selectedElementInfo.value = elementInfo
   },
+})
+
+// 右侧区域视图切换：preview | code
+const viewMode = ref<'preview' | 'code'>('preview')
+
+// 代码块解析（用于多文件Tab展示）
+interface CodeBlock {
+  title: string
+  language: string
+  code: string
+}
+const latestCodeBlocks = computed<CodeBlock[]>(() => {
+  // 找到最后一条 AI 消息
+  const lastAi = [...messages.value].reverse().find(m => m.type === 'ai' && m.content)
+  if (!lastAi || !lastAi.content) return []
+  const content = lastAi.content
+  const blocks: CodeBlock[] = []
+
+  // 策略1：优先解析“写入文件”工具输出，Tab 使用真实文件名
+  // 形如：
+  // [工具调用] 写入文件 path/to/file.ext\n```ext\n...\n```
+  const writeFilePairRegex = /\[工具调用\]\s*写入文件\s+([^\s\n]+)[\s\S]*?```([a-zA-Z]+)?\n([\s\S]*?)```/g
+  let wf: RegExpExecArray | null
+  while ((wf = writeFilePairRegex.exec(content)) !== null) {
+    const fullPath = wf[1] || ''
+    const titleFromPath = fullPath.split('/').pop() || fullPath
+    blocks.push({
+      title: titleFromPath,
+      language: wf[2] || 'text',
+      code: wf[3] || ''
+    })
+  }
+  if (blocks.length > 0) return blocks
+
+  // 策略2：匹配“文件名标题 + 紧随其后的代码块”
+  const tabHeaderRegex = /(?:^|\n)\s*(?:STEP\s*\d+\s*[:：].*\n)?\s*(?:\*\*\s*)?([\w./-]+\.(?:[jt]sx?|css|html|vue|json|md))\s*(?:\*\*)?\s*(?:\n|$)/gi
+  const codeBlockRegex = /```([a-zA-Z]+)?\n([\s\S]*?)```/g
+  let headerMatch: RegExpExecArray | null
+  let searchIndex = 0
+  while ((headerMatch = tabHeaderRegex.exec(content)) !== null) {
+    const title = headerMatch[1]
+    codeBlockRegex.lastIndex = tabHeaderRegex.lastIndex
+    const nextCode = codeBlockRegex.exec(content)
+    if (nextCode && nextCode.index >= tabHeaderRegex.lastIndex) {
+      blocks.push({
+        title,
+        language: nextCode[1] || 'text',
+        code: nextCode[2] || ''
+      })
+      searchIndex = codeBlockRegex.lastIndex
+      tabHeaderRegex.lastIndex = searchIndex
+    }
+  }
+
+  // 策略3：退化为平铺所有代码块
+  if (blocks.length === 0) {
+    codeBlockRegex.lastIndex = 0
+    let m: RegExpExecArray | null
+    let idx = 1
+    while ((m = codeBlockRegex.exec(content)) !== null) {
+      blocks.push({
+        title: `代码片段${idx++}`,
+        language: m[1] || 'text',
+        code: m[2] || ''
+      })
+    }
+  }
+  return blocks
 })
 
 // 权限相关
@@ -1016,6 +1109,30 @@ onUnmounted(() => {
   flex: 1;
   position: relative;
   overflow: hidden;
+}
+
+/* 代码标签区 */
+.code-tabs {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  padding: 8px 12px 0;
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow) inset;
+}
+
+.code-block {
+  max-height: 260px;
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.7);
+  color: #1a1a1a;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.code-empty {
+  padding: 16px;
+  color: #666;
 }
 
 .preview-placeholder {
