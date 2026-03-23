@@ -2,6 +2,7 @@ package org.example.aigeneration.core;
 
 import cn.hutool.json.JSONUtil;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.PartialToolCall;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
@@ -42,12 +43,12 @@ public class AiCodeGeneratorFacade{
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
         return switch( codeGenTypeEnum ){
             case HTML -> {
-                Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId);
+                TokenStream tokenStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
+                yield processTextTokenStream(tokenStream, CodeGenTypeEnum.HTML, appId);
             }
             case MULTI_FILE -> {
-                Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
+                TokenStream tokenStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+                yield processTextTokenStream(tokenStream, CodeGenTypeEnum.MULTI_FILE, appId);
             }
             case VUE_PROJECT -> {
                 TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
@@ -58,6 +59,30 @@ public class AiCodeGeneratorFacade{
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
             }
         };
+    }
+
+    /**
+     * 将简单文本类型的 TokenStream 转换为 Flux<String>，并在完成后保存代码文件。
+     */
+    private Flux<String> processTextTokenStream(TokenStream tokenStream, CodeGenTypeEnum codeGenTypeEnum, Long appId){
+        return Flux.create(sink->{
+            StringBuilder sb = new StringBuilder();
+            tokenStream.onPartialResponse((String partialResponse)->{
+                        sb.append(partialResponse);
+                        sink.next(partialResponse);
+                    })
+                    .onCompleteResponse((ChatResponse response)->{
+                        String result = sb.toString();
+                        Object executeParser = CodeParserExecutor.executeParser(result, codeGenTypeEnum);
+                        CodeFileSaverExecutor.executeSaver(executeParser, codeGenTypeEnum, appId);
+                        sink.complete();
+                    })
+                    .onError((Throwable error)->{
+                        error.printStackTrace();
+                        sink.error(error);
+                    })
+                    .start();
+        });
     }
 
     /**
@@ -75,10 +100,10 @@ public class AiCodeGeneratorFacade{
                         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
                         sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                     })
-                    // 处理部分工具执行请求事件
-                    // 将工具执行请求封装为 ToolRequestMessage 并转换为 JSON 字符串发送
-                    .onPartialToolExecutionRequest((index, toolExecutionRequest)->{
-                        ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+                    // 处理部分工具调用事件
+                    // 新版本 LangChain4j 会在这里流式返回工具调用信息
+                    .onPartialToolCall((PartialToolCall partialToolCall)->{
+                        ToolRequestMessage toolRequestMessage = new ToolRequestMessage(partialToolCall);
                         sink.next(JSONUtil.toJsonStr(toolRequestMessage));
                     })
                     // 处理工具执行完成事件
@@ -92,9 +117,12 @@ public class AiCodeGeneratorFacade{
                     .onCompleteResponse((ChatResponse response)->{
                         // 根据appId生成项目路径
                         String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                        // 异步构建项目
-                        vueProjectBuilder.buildProject(projectPath);
-                        // 完成流
+                        // 构建项目，只有构建成功才结束流
+                        boolean buildSuccess = vueProjectBuilder.buildProject(projectPath);
+                        if( !buildSuccess ){
+                            sink.error(new BusinessException(ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败，请检查生成代码"));
+                            return;
+                        }
                         sink.complete();
                     })
                     // 处理错误事件
@@ -108,16 +136,4 @@ public class AiCodeGeneratorFacade{
         });
     }
 
-
-    /**
-     * 流式生成并保存（除Vue项目外）文件
-     */
-    private Flux<String> processCodeStream(Flux<String> stream, CodeGenTypeEnum codeGenTypeEnum, Long appId){
-        StringBuilder sb = new StringBuilder();
-        return stream.doOnNext(sb::append).doOnComplete(()->{
-            String result = sb.toString();
-            Object executeParser = CodeParserExecutor.executeParser(result, codeGenTypeEnum);
-            CodeFileSaverExecutor.executeSaver(executeParser, codeGenTypeEnum, appId);
-        });
-    }
 }

@@ -678,19 +678,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     // 处理错误
     eventSource.onerror = function () {
       if (streamCompleted || !isGenerating.value) return
-      // 检查是否是正常的连接关闭
-      if (eventSource?.readyState === EventSource.CONNECTING) {
-        streamCompleted = true
-        isGenerating.value = false
-        eventSource?.close()
-
-        setTimeout(async () => {
-          await fetchAppInfo()
-          updatePreview()
-        }, 1000)
-      } else {
-        handleError(new Error('SSE连接错误'), aiMessageIndex)
-      }
+      streamCompleted = true
+      eventSource?.close()
+      handleError(new Error('SSE连接中断'), aiMessageIndex)
     }
   } catch (error) {
     console.error('创建 EventSource 失败：', error)

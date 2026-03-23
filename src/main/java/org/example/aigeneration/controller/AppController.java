@@ -8,6 +8,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.example.aigeneration.annotation.AuthCheck;
 import org.example.aigeneration.common.BaseResponse;
 import org.example.aigeneration.common.DeleteRequest;
@@ -45,6 +46,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping ("/app")
+@Slf4j
 public class AppController{
 
     @Resource
@@ -89,6 +91,24 @@ public class AppController{
                     return ServerSentEvent.<String>builder()
                             .data(jsonData)
                             .build();
+                })
+                .onErrorResume(error->{
+                    int errorCode = ErrorCode.SYSTEM_ERROR.getCode();
+                    String errorMessage = "系统错误";
+                    if (error instanceof BusinessException businessException) {
+                        errorCode = businessException.getCode();
+                        errorMessage = businessException.getMessage();
+                    }
+                    log.error("SSE generation failed, appId={}, message={}", appId, message, error);
+                    String errorJson = JSONUtil.toJsonStr(Map.of(
+                            "error", true,
+                            "code", errorCode,
+                            "message", errorMessage
+                    ));
+                    return Flux.just(ServerSentEvent.<String>builder()
+                            .event("business-error")
+                            .data(errorJson)
+                            .build());
                 })
                 .concatWith(Mono.just(
                         // 发送结束事件

@@ -39,6 +39,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -106,15 +107,51 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setUserId(loginUser.getId());
         // 应用名称暂时为 initPrompt 前 12 位
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-        // 使用工厂类每次生成新的 AI 智能选择代码生成
-        AiCodeGenTypeRoutingService routingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
-        CodeGenTypeEnum selectedCodeGenType = routingService.routeCodeGenType(initPrompt);
+        // 优先使用 AI 路由，失败时回退到本地规则，避免创建应用直接报系统错误
+        CodeGenTypeEnum selectedCodeGenType = selectCodeGenType(initPrompt);
         app.setCodeGenType(selectedCodeGenType.getValue());
         // 插入数据库
         boolean result = this.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         log.info("应用创建成功，ID: {}, 类型: {}", app.getId(), selectedCodeGenType.getValue());
         return app.getId();
+    }
+
+    private CodeGenTypeEnum selectCodeGenType(String initPrompt) {
+        try {
+            AiCodeGenTypeRoutingService routingService =
+                    aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
+            CodeGenTypeEnum selected = routingService.routeCodeGenType(initPrompt);
+            if (selected != null) {
+                return selected;
+            }
+        } catch (Exception e) {
+            log.warn("AI 路由失败，回退到本地规则路由", e);
+        }
+        return fallbackCodeGenType(initPrompt);
+    }
+
+    private CodeGenTypeEnum fallbackCodeGenType(String initPrompt) {
+        String prompt = StrUtil.blankToDefault(initPrompt, "").toLowerCase();
+        int complexScore = countKeywords(prompt,
+                "vue", "react", "spa", "dashboard", "admin", "后台", "管理",
+                "登录", "注册", "搜索", "筛选", "评论", "markdown", "md",
+                "详情页", "列表", "分类", "标签", "状态管理", "多页面", "路由", "router");
+        if (complexScore >= 3) {
+            return CodeGenTypeEnum.VUE_PROJECT;
+        }
+        int multiFileScore = countKeywords(prompt,
+                "页面", "导航", "表单", "css", "js", "交互", "轮播", "详情");
+        if (multiFileScore >= 2) {
+            return CodeGenTypeEnum.MULTI_FILE;
+        }
+        return CodeGenTypeEnum.HTML;
+    }
+
+    private int countKeywords(String prompt, String... keywords) {
+        return (int) Arrays.stream(keywords)
+                .filter(prompt::contains)
+                .count();
     }
 
 

@@ -123,9 +123,12 @@ const viewChat = (appId: string | number | undefined) => {
 
 // 查看作品
 const viewWork = (app: API.AppVO) => {
+  if (app.deployKey) {
+    window.open(getDeployUrl(app.deployKey), '_blank')
+    return
+  }
   if (app.codeGenType && app.id) {
-    const url = getStaticPreviewUrl(app.codeGenType, String(app.id))
-    window.open(url, '_blank')
+    window.open(getStaticPreviewUrl(app.codeGenType, String(app.id)), '_blank')
   }
 }
 

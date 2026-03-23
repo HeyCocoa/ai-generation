@@ -2,7 +2,6 @@ package org.example.aigeneration.ai;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
@@ -27,10 +26,8 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory{
 
-    @Resource (name = "openAiChatModel")
+    @Resource (name = "proxyOpenAiChatModel")
     private ChatModel chatModel;
-    @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
     @Resource
     private ChatHistoryService chatHistoryService;
     @Resource
@@ -45,7 +42,6 @@ public class AiCodeGeneratorServiceFactory{
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
                 .builder()
                 .id(appId)
-                .chatMemoryStore(redisChatMemoryStore)
                 .maxMessages(50)
                 .build();
         // 从数据库加载历史对话到记忆中
@@ -68,7 +64,7 @@ public class AiCodeGeneratorServiceFactory{
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                         ))
                         // 限制最大工具调用次数，防止无限循环
-                        .maxSequentialToolsInvocations(15)
+                        .maxSequentialToolsInvocations(60)
                         .build();
             }
             // HTML 和多文件生成使用默认模型

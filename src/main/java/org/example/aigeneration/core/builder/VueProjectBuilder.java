@@ -1,10 +1,14 @@
 package org.example.aigeneration.core.builder;
 
-import cn.hutool.core.util.RuntimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -90,20 +94,26 @@ public class VueProjectBuilder{
      * @return 是否执行成功
      */
     private boolean executeCommand(File workingDir, String command, int timeoutSeconds){
+        StringBuilder outputBuffer = new StringBuilder();
         try {
             log.info("在目录 {} 中执行命令: {}", workingDir.getAbsolutePath(), command);
-            Process process = RuntimeUtil.exec(
-                    null,
-                    workingDir,
-                    command.split("\\s+") // 命令分割为数组
-            );
+            Process process = new ProcessBuilder(command.split("\\s+"))
+                    .directory(workingDir)
+                    .redirectErrorStream(true)
+                    .start();
+            Thread outputReader = Thread.ofVirtual()
+                    .name("vue-build-log-" + System.nanoTime())
+                    .start(() -> readProcessOutput(process.getInputStream(), outputBuffer));
             // 等待进程完成，设置超时
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if( !finished ){
                 log.error("命令执行超时（{}秒），强制终止进程", timeoutSeconds);
                 process.destroyForcibly();
+                outputReader.join(TimeUnit.SECONDS.toMillis(5));
+                logCommandOutput(command, outputBuffer);
                 return false;
             }
+            outputReader.join(TimeUnit.SECONDS.toMillis(5));
             int exitCode = process.exitValue();
             if( exitCode==0 ){
                 log.info("命令执行成功: {}", command);
@@ -111,12 +121,41 @@ public class VueProjectBuilder{
             }
             else{
                 log.error("命令执行失败，退出码: {}", exitCode);
+                logCommandOutput(command, outputBuffer);
                 return false;
             }
         } catch( Exception e ) {
             log.error("执行命令失败: {}, 错误信息: {}", command, e.getMessage());
+            logCommandOutput(command, outputBuffer);
             return false;
         }
+    }
+
+    private void readProcessOutput(InputStream inputStream, StringBuilder outputBuffer){
+        try( BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)) ) {
+            String line;
+            while( (line = reader.readLine())!=null ){
+                synchronized( outputBuffer ){
+                    outputBuffer.append(line).append(System.lineSeparator());
+                }
+            }
+        } catch( IOException e ) {
+            log.warn("读取命令输出失败: {}", e.getMessage());
+        }
+    }
+
+    private void logCommandOutput(String command, StringBuilder outputBuffer){
+        String output;
+        synchronized( outputBuffer ){
+            output = outputBuffer.toString().trim();
+        }
+        if( output.isEmpty() ){
+            return;
+        }
+        if( output.length()>4000 ){
+            output = output.substring(output.length() - 4000);
+        }
+        log.error("命令 {} 的输出如下:\n{}", command, output);
     }
 
 }

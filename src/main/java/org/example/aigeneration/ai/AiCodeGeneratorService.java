@@ -4,7 +4,6 @@ import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
-import reactor.core.publisher.Flux;
 
 public interface AiCodeGeneratorService{
 
@@ -13,10 +12,10 @@ public interface AiCodeGeneratorService{
      * 使用系统提示符从资源文件中加载
      *
      * @param userMessage 用户输入的消息，用于生成HTML代码
-     * @return 返回一个Flux<String>类型的响应流，包含生成的HTML代码片段
+     * @return 返回一个 TokenStream，用于流式接收 HTML 代码片段
      */
     @SystemMessage (fromResource = "prompt/codegen-html-system-prompt.txt")
-    Flux<String> generateHtmlCodeStream(String userMessage);
+    TokenStream generateHtmlCodeStream(String userMessage);
 
     /**
      * 生成多文件代码（流式）
@@ -25,7 +24,7 @@ public interface AiCodeGeneratorService{
      * @return 生成的代码结果
      */
     @SystemMessage (fromResource = "prompt/codegen-multi-file-system-prompt.txt")
-    Flux<String> generateMultiFileCodeStream(String userMessage);
+    TokenStream generateMultiFileCodeStream(String userMessage);
 
     /**
      * 生成 Vue 项目代码（流式）

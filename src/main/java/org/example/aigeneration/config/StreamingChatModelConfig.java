@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.time.Duration;
+
 @Configuration
 @ConfigurationProperties (prefix = "langchain4j.open-ai.streaming-chat-model")
 @Data
@@ -23,6 +25,8 @@ public class StreamingChatModelConfig {
 
     private Double temperature;
 
+    private Duration timeout;
+
     private boolean logRequests;
 
     private boolean logResponses;
@@ -31,11 +35,13 @@ public class StreamingChatModelConfig {
     @Scope ("prototype")
     public StreamingChatModel streamingChatModelPrototype() {
         return OpenAiStreamingChatModel.builder()
+                .httpClientBuilder(AiHttpClientFactory.create(timeout))
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .modelName(modelName)
                 .maxTokens(maxTokens)
                 .temperature(temperature)
+                .timeout(timeout)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .build();
