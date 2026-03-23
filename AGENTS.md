@@ -9,6 +9,7 @@ This repository has a Spring Boot backend and a Vue 3 frontend.
 - `ai-frontend/src`: Vue app source, including `pages`, `components`, `router`, `stores`, `api`, and `utils`.
 - `tmp/code_output` and `tmp/code_deploy`: generated app artifacts and deployed static output. Treat these as runtime output, not source.
 - `DEPLOY.md`: production deployment paths and commands.
+- Canonical Git remote is GitHub on branch `main`. Gitee is retired and should not be used for new work.
 
 ## Build, Test, and Development Commands
 - Backend build: `mvn clean package`  
@@ -44,6 +45,11 @@ Recent history uses short Chinese summaries such as `优化生成逻辑，使生
 - affected areas (`backend`, `frontend`, `deploy`, `AI flow`)
 - screenshots or GIFs for UI changes
 - verification steps, e.g. `mvn test`, `npm run build`
+- target branch: `main`
 
 ## Security & Configuration Tips
 Configuration lives in `application.yml`, `application-local.yml`, and `application-prod.yml`. Do not add new secrets or production credentials to versioned files. When changing deploy behavior, keep `DEPLOY.md` in sync.
+
+## Long-Term Notes
+- Backend preview and deploy paths depend on the process `cwd`; production must start from the project root shown in `DEPLOY.md`.
+- “作品链接” and “静态预览” are different: deployed works should use `/dist/{deployKey}/`, while in-editor preview still uses `/api/static/...`.

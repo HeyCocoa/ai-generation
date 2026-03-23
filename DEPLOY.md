@@ -2,6 +2,9 @@
 
 ## Overview
 
+- Canonical repo: `https://github.com/HeyCocoa/ai-generation`
+- Default branch: `main`
+- Gitee is retired and should not receive new pushes.
 - Public domain: `http://www.kokoa-ai.chat`
 - Server IP: `1.117.65.146`
 - Project root: `/opt/1panel/www/sites/ai-generation`
@@ -68,6 +71,7 @@ mvn -DskipTests package
 - Build failures now print command output in backend logs.
 - Frontend "查看作品 / 访问链接" now opens deploy URLs instead of static file preview paths.
 - Chat SSE no longer treats reconnect/error state as successful completion.
+- Local development should follow the same split: editor preview uses `/api/static/...`, deployed works use `/dist/{deployKey}/`.
 
 ## Rollback
 
