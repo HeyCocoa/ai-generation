@@ -5,9 +5,9 @@ import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.StrUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.example.aigeneration.config.LocalUploadConfig;
 import org.example.aigeneration.exception.ErrorCode;
 import org.example.aigeneration.exception.ThrowUtils;
-import org.example.aigeneration.manager.CosManager;
 import org.example.aigeneration.service.ScreenshotService;
 import org.example.aigeneration.utils.WebScreenshotUtils;
 import org.springframework.stereotype.Service;
@@ -21,34 +21,34 @@ import java.time.format.DateTimeFormatter;
 public class ScreenshotServiceImpl implements ScreenshotService {
 
     @Resource
-    private CosManager cosManager;
+    private LocalUploadConfig localUploadConfig;
 
     @Override
-    public String generateAndUploadScreenshot(String webUrl) {
+    public String generateAndSaveScreenshot(String webUrl) {
         ThrowUtils.throwIf(StrUtil.isBlank(webUrl), ErrorCode.PARAMS_ERROR, "网页URL不能为空");
         log.info("开始生成网页截图，URL: {}", webUrl);
         // 1. 生成本地截图
         String localScreenshotPath = WebScreenshotUtils.saveWebPageScreenshot(webUrl);
         ThrowUtils.throwIf(StrUtil.isBlank(localScreenshotPath), ErrorCode.OPERATION_ERROR, "本地截图生成失败");
         try {
-            // 2. 上传到对象存储
-            String cosUrl = uploadScreenshotToCos(localScreenshotPath);
-            ThrowUtils.throwIf(StrUtil.isBlank(cosUrl), ErrorCode.OPERATION_ERROR, "截图上传对象存储失败");
-            log.info("网页截图生成并上传成功: {} -> {}", webUrl, cosUrl);
-            return cosUrl;
+            // 2. 保存到稳定静态目录
+            String screenshotUrl = saveScreenshotToLocalStaticDir(localScreenshotPath);
+            ThrowUtils.throwIf(StrUtil.isBlank(screenshotUrl), ErrorCode.OPERATION_ERROR, "截图保存本地静态目录失败");
+            log.info("网页截图生成并保存成功: {} -> {}", webUrl, screenshotUrl);
+            return screenshotUrl;
         } finally {
-            // 3. 清理本地文件
+            // 3. 清理临时截图目录
             cleanupLocalFile(localScreenshotPath);
         }
     }
 
     /**
-     * 上传截图到对象存储
+     * 将截图保存到本地静态目录
      *
      * @param localScreenshotPath 本地截图路径
-     * @return 对象存储访问URL，失败返回null
+     * @return 可访问URL，失败返回null
      */
-    private String uploadScreenshotToCos(String localScreenshotPath) {
+    private String saveScreenshotToLocalStaticDir(String localScreenshotPath) {
         if (StrUtil.isBlank(localScreenshotPath)) {
             return null;
         }
@@ -57,32 +57,42 @@ public class ScreenshotServiceImpl implements ScreenshotService {
             log.error("截图文件不存在: {}", localScreenshotPath);
             return null;
         }
-        // 生成 COS 对象键
         String fileName = UUID.randomUUID().toString().substring(0, 8) + "_compressed.jpg";
-        String cosKey = generateScreenshotKey(fileName);
-        return cosManager.uploadFile(cosKey, screenshotFile);
+        String relativePath = generateScreenshotRelativePath(fileName);
+        File targetFile = FileUtil.file(localUploadConfig.getRootDir(), relativePath);
+        FileUtil.mkParentDirs(targetFile);
+        FileUtil.move(screenshotFile, targetFile, true);
+        return buildPublicUrl(relativePath);
     }
 
     /**
-     * 生成截图的对象存储键
-     * 格式：/screenshots/2025/../../filename.jpg
+     * 生成截图的相对路径
      */
-    private String generateScreenshotKey(String fileName) {
+    private String generateScreenshotRelativePath(String fileName) {
         String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        return String.format("/screenshots/%s/%s", datePath, fileName);
+        return String.format("screenshots/%s/%s", datePath, fileName);
     }
 
     /**
-     * 清理本地文件
+     * 拼接数据库中保存的公开访问地址
+     */
+    private String buildPublicUrl(String relativePath) {
+        String normalizedPrefix = StrUtil.removeSuffix(localUploadConfig.getPublicUrlPrefix(), "/");
+        String normalizedRelativePath = StrUtil.removePrefix(relativePath.replace(File.separatorChar, '/'), "/");
+        return normalizedPrefix + "/" + normalizedRelativePath;
+    }
+
+    /**
+     * 清理临时目录
      *
      * @param localFilePath 本地文件路径
      */
     private void cleanupLocalFile(String localFilePath) {
         File localFile = new File(localFilePath);
-        if (localFile.exists()) {
-            File parentDir = localFile.getParentFile();
+        File parentDir = localFile.getParentFile();
+        if (parentDir != null && parentDir.exists()) {
             FileUtil.del(parentDir);
-            log.info("本地截图文件已清理: {}", localFilePath);
+            log.info("临时截图目录已清理: {}", parentDir.getAbsolutePath());
         }
     }
 }

@@ -320,8 +320,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public void generateAppScreenshotAsync(Long appId, String appUrl){
         // 使用虚拟线程异步执行
         Thread.startVirtualThread(()->{
-            // 调用截图服务生成截图并上传
-            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+            // 调用截图服务生成截图并保存到本地静态目录
+            String screenshotUrl = screenshotService.generateAndSaveScreenshot(appUrl);
             // 更新应用封面字段
             App updateApp = new App();
             updateApp.setId(appId);

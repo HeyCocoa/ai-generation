@@ -153,13 +153,20 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
+const validateCover = async (_rule: unknown, value: string) => {
+  if (!value || /^(https?:\/\/|\/)/.test(value)) {
+    return Promise.resolve()
+  }
+  return Promise.reject('请输入有效的图片地址')
+}
+
 // 表单验证规则
 const rules = {
   appName: [
     { required: true, message: '请输入应用名称', trigger: 'blur' },
     { min: 1, max: 50, message: '应用名称长度在1-50个字符', trigger: 'blur' },
   ],
-  cover: [{ type: 'url', message: '请输入有效的URL', trigger: 'blur' }],
+  cover: [{ validator: validateCover, trigger: 'blur' }],
   priority: [{ type: 'number', min: 0, max: 99, message: '优先级范围0-99', trigger: 'blur' }],
 }
 

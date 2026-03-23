@@ -13,6 +13,7 @@
 - Backend log: `/opt/1panel/www/sites/ai-generation/app.log`
 - Generated code: `/opt/1panel/www/sites/ai-generation/tmp/code_output`
 - Deployed works: `/opt/1panel/www/sites/ai-generation/tmp/code_deploy`
+- Screenshot uploads: `/opt/1panel/www/sites/ai-generation/tmp/uploads/screenshots`
 
 ## Runtime Topology
 
@@ -20,6 +21,7 @@
 - Frontend is pure static build output under `index/`.
 - Backend is a standalone Spring Boot jar.
 - MySQL and Redis are expected to be available on the same host.
+- App covers are served by Spring static resource mapping under `/api/uploads/**`.
 
 ## Critical Rule
 
@@ -63,6 +65,7 @@ mvn -DskipTests package
 - Open `http://www.kokoa-ai.chat`
 - Create an app and verify `/api/app/chat/gen/code` starts streaming
 - For deployed apps, verify returned links are `http://www.kokoa-ai.chat/dist/{deployKey}/`
+- After deploy succeeds, verify `app.cover` points to `/api/uploads/screenshots/...`
 
 ## Current Online Notes
 
@@ -72,6 +75,7 @@ mvn -DskipTests package
 - Frontend "查看作品 / 访问链接" now opens deploy URLs instead of static file preview paths.
 - Chat SSE no longer treats reconnect/error state as successful completion.
 - Local development should follow the same split: editor preview uses `/api/static/...`, deployed works use `/dist/{deployKey}/`.
+- App cover screenshots are stored on the server under `tmp/uploads/screenshots` and exposed via `/api/uploads/...`.
 
 ## Rollback
 
